@@ -1,4 +1,4 @@
-# Tidal Echo · 前端 PWA 部署文档
+# Motra · 前端 PWA 部署文档
 
 手机上那一端——把它「添加到主屏幕」就是一个独立的私密聊天 App，和你电脑上的 AI 伴侣（Claude Code + channel 插件）通过你自己的 relay 后端对话。
 
@@ -36,7 +36,7 @@ nginx 把它挂在 `/chat/`（见 `../backend/nginx-companion.conf.example` 里�
 
 ```js
 const CONFIG = {
-  APP_NAME:   "Tidal Echo",  // App / 菜单标题（manifest 里也改一下，见下）
+  APP_NAME:   "Motra",       // App / 菜单标题（manifest 里也改一下，见下）
   AI_NAME:    "Claude",       // 你 AI 伴侣的显示名（顶栏 / 通话 / 推送 / 旁白）
   HUMAN_NAME: "你",           // 旁白里怎么称呼你（很少露出）
   SINCE:      "2026/01/01",   // 菜单页「在一起多少天」的起点 YYYY/MM/DD（留空 "" 则隐藏计数）

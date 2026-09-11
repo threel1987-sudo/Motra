@@ -4,7 +4,7 @@
 <!-- ════════════════════════════════════════════════════════════════
   区块目录（要修改某功能时按区块名搜索即可定位）：
   CSS 样式区：/* ── XXX ── */ 横幅
-    主题变量 TIDAL ECHO · 潮汐回响(深色海岸玻璃拟态) · Header · Messages
+    主题变量 MOTRA · 星辰之语(深色海岸玻璃拟态) · Header · Messages
     meta card(思考/工具卡) · thinking · act · Composer · Login
     Profile 设置页 · API 列表 · Menu 主页 · Voice call · 长按菜单
     多选消息 · 编辑消息 · reaction
@@ -31,7 +31,7 @@
 })();
 </script>
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>Tidal Echo</title>
+<title>Motra</title>
 
 <!-- PWA / iOS -->
 <link rel="manifest" href="manifest.webmanifest">
@@ -46,12 +46,12 @@
 <meta name="theme-color" content="#050D14">
 <!-- iOS launch mode is manifest-only; legacy Apple fullscreen meta breaks bottom viewport. -->
 
-<meta name="apple-mobile-web-app-title" content="Tidal Echo">
+<meta name="apple-mobile-web-app-title" content="Motra">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="icon" type="image/png" sizes="32x32" href="favicon.png">
 
 <script>
-  /* Theme: single preset (tide = Tidal Echo dark glassmorphism). Persisted in localStorage companion_theme. */
+  /* Theme: single preset (tide = Motra dark glassmorphism). Persisted in localStorage companion_theme. */
   (function(){
     var THEMES = ["tide"];
     try{
@@ -113,7 +113,7 @@
     --menu-wall-harbor: url("beach.webp");
     --menu-wall-default: var(--menu-wall-light);
     --avatar-default: url("avatar-sea.png");
-    /* ── TIDAL ECHO · 潮汐回响(深色海岸玻璃拟态) ── */
+    /* ── MOTRA · 星辰之语(深色海岸玻璃拟态) ── */
     --bg: #050D14;
     --header-bg: rgba(5,13,20,.00);
     --hairline: rgba(255,255,255,.10);
@@ -2455,7 +2455,7 @@
 <div class="login" id="login">
   <div class="login-card">
     <div class="orb"></div>
-    <h1>Tidal Echo</h1>
+    <h1>Motra</h1>
     <p class="sub">输入连接密钥,进入你和Claude的频道。</p>
     <form id="loginForm" autocomplete="off">
       <label class="login-label" for="secretInput">连接密钥</label>
@@ -2997,8 +2997,8 @@
 
       <!-- hero -->
       <div class="menu-hero">
-        <h1 class="menu-title">Tidal Echo</h1>
-        <p class="menu-tagline">潮汐回响</p>
+        <h1 class="menu-title">Motra</h1>
+        <p class="menu-tagline">星辰之语</p>
         <div class="menu-brand-divider"><span class="menu-brand-dot"></span></div>
         <p class="menu-since">since 2026/01/01</p>
         <div class="menu-days"><span class="num" id="menuDays">113</span><span class="lab">Days together</span></div>
@@ -3161,7 +3161,7 @@
 
 <script>
 /* ════════════════════════════════════════════════════════════════
-   Tidal Echo — PWA chat shell (open source)
+   Motra — PWA chat shell (open source)
    A private 1:1 chat front-end for a person and their AI companion,
    talking to a self-hosted relay backend. No domain or secret is baked in.
    Backend contract: GET /app/history · SSE /app/stream · POST /app/send · /healthz
@@ -3169,7 +3169,7 @@
 
 /* ── identity / branding — the ONE place to set names + app title ── */
 const CONFIG = {
-  APP_NAME:   "Tidal Echo",  // app + menu title (and manifest, set there too)
+  APP_NAME:   "Motra",       // app + menu title (and manifest, set there too)
   AI_NAME:    "Claude",       // your AI companion's display name (header / call / push / narration)
   HUMAN_NAME: "你",           // how you're referred to in narration (rarely shown)
   SINCE:      "2026/01/01",   // "together since" date YYYY/MM/DD for the menu counter ("" hides it)
@@ -5041,9 +5041,9 @@ exportChatBtn?.addEventListener("click", async () => {
         sessions: (apiSessions || []).map((s) => ({ id: s.id, title: s.title, pinned: s.pinned, created_at: s.created_at })),
         messages: msgs
       };
-      downloadTextFile(`tidal-echo-${exportScope}-${stamp}.json`, JSON.stringify(payload, null, 2), "application/json");
+      downloadTextFile(`motra-${exportScope}-${stamp}.json`, JSON.stringify(payload, null, 2), "application/json");
     }else{
-      downloadTextFile(`tidal-echo-${exportScope}-${stamp}.txt`, exportTextOf(msgs), "text/plain;charset=utf-8");
+      downloadTextFile(`motra-${exportScope}-${stamp}.txt`, exportTextOf(msgs), "text/plain;charset=utf-8");
     }
     exportHint.textContent = `已导出 ${msgs.length} 条消息`;
   }catch(err){

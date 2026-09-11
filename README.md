@@ -143,7 +143,7 @@ curl -s -X POST http://127.0.0.1:3011/app/brain \
 
 ```js
 const CONFIG = {
-  APP_NAME:   "Tidal Echo",  // App / 菜单标题（manifest.webmanifest 里也改一下）
+  APP_NAME:   "Motra",       // App / 菜单标题（manifest.webmanifest 里也改一下）
   AI_NAME:    "Claude",       // AI 显示名（顶栏 / 通话 / 推送 / 旁白）
   HUMAN_NAME: "你",           // 旁白里怎么称呼你（很少露出）
   SINCE:      "2026/01/01",   // 菜单「在一起多少天」起点（留空 "" 隐藏）
