@@ -85,6 +85,31 @@
       }
     }catch(e){}
   })();
+  /* 主题配色 + 玻璃强度预注入:首屏即生效,避免闪烁。运行时逻辑见「外观子页」JS 区块。 */
+  (function(){
+    try{
+      var ACCENTS={coastal:[168,204,224],rose:[224,138,150],mint:[168,216,192],sand:[230,201,168],lavender:[184,168,224]};
+      var k = localStorage.getItem("companion_accent");
+      var c = ACCENTS[k] || ACCENTS.coastal;
+      var g = parseInt(localStorage.getItem("companion_glass") || "65", 10);
+      if (isNaN(g)) g = 65;
+      var a = g / 100;
+      var s = document.documentElement.style;
+      var R = function(rr,gg,bb){ return "rgb(" + rr + "," + gg + "," + bb + ")"; };
+      s.setProperty("--accent", R(c[0],c[1],c[2]));
+      s.setProperty("--send-bg", R(c[0],c[1],c[2]));
+      s.setProperty("--slider-thumb", R(c[0],c[1],c[2]));
+      s.setProperty("--think-label", R(c[0],c[1],c[2]));
+      s.setProperty("--tick", R(Math.round(c[0]*0.82), Math.round(c[1]*0.82), Math.round(c[2]*0.82)));
+      s.setProperty("--seg-thumb", "rgba(" + c[0] + "," + c[1] + "," + c[2] + ",.30)");
+      s.setProperty("--info-ring", "rgba(" + c[0] + "," + c[1] + "," + c[2] + ",.38)");
+      s.setProperty("--card-bg", "rgba(255,255,255," + (a*0.22).toFixed(3) + ")");
+      s.setProperty("--composer-bg", "rgba(255,255,255," + (a*0.18).toFixed(3) + ")");
+      s.setProperty("--bubble-ai-bg", "rgba(255,255,255," + (a*0.22).toFixed(3) + ")");
+      s.setProperty("--bubble-human-bg", "rgba(" + c[0] + "," + c[1] + "," + c[2] + "," + (a*0.40).toFixed(3) + ")");
+      s.setProperty("--field-bg", "rgba(255,255,255," + (a*0.18).toFixed(3) + ")");
+    }catch(e){}
+  })();
 </script>
 
 <script>
@@ -1187,11 +1212,16 @@
   .profile-topbar{
     position: relative; z-index:1;
     flex: 0 0 auto;
-    display:flex; align-items:center; gap:10px;
+    display:flex; align-items:center; justify-content:center;
     height: calc(56px + env(safe-area-inset-top));
     padding: env(safe-area-inset-top) var(--side-pad) 0;
   }
+  .profile-topbar h2{
+    margin: 0; font-size: 17px; font-weight: 600;
+    letter-spacing: .02em; color: var(--text);
+  }
   .profile-back{
+    position: absolute; left: var(--side-pad);
     width:40px; height:40px; flex:none;
     border:0; border-radius:50%; padding:0; margin-left:-6px;
     background: transparent; color: var(--text);
@@ -1315,6 +1345,129 @@
   }
   .profile-bio{ margin:0; color: var(--text-soft); font-size:13px; line-height:1.55; }
 
+  /* ════════════ 设置页结构(设计稿):iOS 分组卡片 + 行条目 ════════════ */
+  .setting-group{
+    background: var(--card-bg);
+    border: 1px solid var(--card-line);
+    border-radius: 16px;
+    box-shadow: var(--card-shadow);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+  }
+  .setting-row{
+    display: flex; align-items: center; gap: 12px;
+    width: 100%; min-height: 52px;
+    padding: 10px 14px;
+    margin: 0; border: none; border-radius: 0;
+    background: transparent; color: inherit;
+    font: inherit; text-align: left;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--motion-fast);
+  }
+  .setting-row + .setting-row{ border-top: 1px solid var(--card-line); }
+  .setting-row:hover{ background: var(--row-press); }
+  .setting-row:active{ background: var(--row-press); }
+  .setting-row.destructive .setting-label{ color: var(--danger); }
+  .setting-row.destructive .setting-icon{ background: rgba(224,138,150,.20); color: var(--danger); }
+  .setting-icon{
+    flex: none; width: 30px; height: 30px; border-radius: 8px;
+    display: grid; place-items: center;
+    color: var(--accent); background: rgba(168,204,224,.18);
+  }
+  .setting-icon svg{ width: 17px; height: 17px; display: block; }
+  .setting-body{ flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+  .setting-label{ font-size: 15px; font-weight: 500; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .setting-sub{ font-size: 12px; color: var(--text-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .setting-value{ flex: none; max-width: 42%; font-size: 13.5px; color: var(--text-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .setting-chevron{ flex: none; width: 18px; height: 18px; color: var(--text-faint); display: grid; place-items: center; }
+  .setting-chevron svg{ width: 16px; height: 16px; display: block; }
+  .setting-group-hint{ margin: 6px 14px 10px; font-size: 11.5px; line-height: 1.55; color: var(--text-faint); }
+  .setting-group-hint:empty{ display: none; }
+
+  /* 个人资料行(更高) */
+  .setting-row.profile-row{
+    min-height: 76px; background: transparent; cursor: default;
+  }
+  .setting-row.profile-row .profile-avatar{
+    width: 54px; height: 54px;
+    border: 2px solid rgba(255,255,255,.18);
+    box-shadow: 0 4px 14px rgba(0,0,0,.25);
+  }
+  .profile-sub{ font-size: 12px; color: var(--text-soft); }
+
+  /* 设计稿 toggle 开关 */
+  input.toggle{
+    appearance: none; -webkit-appearance: none;
+    flex: none;
+    width: 50px; height: 30px;
+    border-radius: 999px;
+    background: rgba(255,255,255,.20);
+    border: 1px solid rgba(255,255,255,.12);
+    position: relative;
+    cursor: pointer; margin: 0;
+    transition: background var(--motion-fast), border-color var(--motion-fast);
+    outline: none;
+  }
+  input.toggle::after{
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 24px; height: 24px;
+    border-radius: 50%;
+    background: var(--text);
+    box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    transition: transform var(--motion-fast) var(--ease-soft);
+  }
+  input.toggle:checked{
+    background: var(--accent);
+    border-color: rgba(168,204,224,.45);
+  }
+  input.toggle:checked::after{
+    transform: translateX(20px);
+    background: var(--accent-fg);
+  }
+  input.toggle:focus-visible{ box-shadow: 0 0 0 3px var(--info-ring); }
+  input.toggle:disabled{ opacity: .4; cursor: not-allowed; }
+
+  /* 外观子页 */
+  .appearance-preview{
+    position: relative;
+    height: clamp(150px, 34vw, 190px);
+    border-radius: 14px;
+    border: 1px solid var(--card-line);
+    box-shadow: var(--shadow-2);
+    background-size: cover; background-position: center;
+    overflow: hidden;
+  }
+  .appearance-preview::before{
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(5,13,20,.35) 0%, transparent 40%, rgba(5,13,20,.55) 100%);
+  }
+  .appearance-preview-label{
+    position: absolute; left: 14px; bottom: 12px;
+    font-size: 20px; font-weight: 600; color: var(--text);
+    text-shadow: 0 2px 8px rgba(0,0,0,.35);
+  }
+  .appearance-preview-badge{
+    position: absolute; right: 12px; top: 12px;
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border-radius: 999px;
+    font-size: 12px; font-weight: 600;
+    color: var(--accent-fg); background: var(--accent);
+  }
+  .accent-row{ display: flex; gap: 15px; align-items: center; padding: 2px; }
+  .accent-swatch{
+    flex: none; width: 38px; height: 38px; border-radius: 50%;
+    border: 2px solid transparent; padding: 0;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: transform var(--motion-fast), border-color var(--motion-fast);
+  }
+  .accent-swatch:active{ transform: scale(.94); }
+  .accent-swatch.selected{ border-color: var(--text); box-shadow: 0 0 0 3px var(--color-accent); }
+
   /* setting card */
   .settings-card{
     background: var(--card-bg);
@@ -1433,6 +1586,7 @@
     background: var(--seg-thumb); color: var(--text);
     box-shadow: var(--seg-thumb-shadow); font-weight:500;
   }
+  .segmented button:disabled{ opacity:.42; cursor:not-allowed; }
 
   /* wall picker（设置页换壁纸 + 自定义上传） */
   .wall-picker{ display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
@@ -2620,140 +2774,127 @@
       <button class="profile-back" id="profileClose" type="button" aria-label="返回">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
       </button>
-      <h2 id="profileTitle" class="hidden">个人信息</h2>
+      <h2 id="profileTitle">设置</h2>
     </div>
     <div class="profile-scroll">
-      <!-- identity -->
-      <div class="profile-identity">
-        <button class="profile-avatar" id="profileAvatarBtn" type="button" aria-label="更改头像"></button>
-        <div class="profile-id-copy">
-          <div class="profile-name-row">
-            <h3 id="profileName">Claude</h3>
-            <input id="profileNameInput" class="hidden" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Claude">
-            <button class="profile-name-edit" id="profileNameEdit" type="button" aria-label="编辑备注">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
-            </button>
+      <div id="profileGroups">
+        <!-- 个人资料(设计稿 profile row) -->
+        <section class="setting-group" aria-label="个人资料">
+          <div class="setting-row profile-row">
+            <button class="profile-avatar" id="profileAvatarBtn" type="button" aria-label="更改头像"></button>
+            <div class="setting-body">
+              <div class="profile-name-row">
+                <h3 id="profileName">Claude</h3>
+                <input id="profileNameInput" class="hidden" type="text" maxlength="16" autocomplete="off" spellcheck="false" placeholder="Claude">
+                <button class="profile-name-edit" id="profileNameEdit" type="button" aria-label="编辑备注">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+                </button>
+              </div>
+              <span class="profile-sub">@companion · 随时在这里，陪你聊聊。</span>
+            </div>
           </div>
-          <p class="profile-handle"><span>@companion</span></p>
-          <p class="profile-bio">随时在这里，陪你聊聊。</p>
-        </div>
+          <button class="setting-row" id="connStatusRow" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 12c3.5-4.5 8.5-6.5 12-4.5M21.5 12c-3.5-4.5-8.5-6.5-12-4.5"/><path d="M5.5 12a6 6 0 0 1 13 0"/><circle cx="12" cy="12" r="1"/></svg></span>
+            <span class="setting-body"><span class="setting-label">连接状态</span><span class="setting-sub" id="brainHint"></span></span>
+          </button>
+        </section>
+
+        <!-- 外观(入口行 → 外观子页) -->
+        <section class="setting-group" aria-label="外观">
+          <button class="setting-row" id="settingsAppearanceRow" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2.2a2.4 2.4 0 0 0-2 3.7c.4.7.1 1.5-.8 1.9-.6.3-1.3.4-2 .4z"/><circle cx="7.5" cy="11.5" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r=".9" fill="currentColor" stroke="none"/><circle cx="16.5" cy="11.5" r=".9" fill="currentColor" stroke="none"/></svg></span>
+            <span class="setting-body"><span class="setting-label">外观</span><span class="setting-sub">主题 · 配色 · 壁纸</span></span>
+            <span class="setting-value">深色海岸</span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <button class="setting-row" id="settingsFontRow" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M12 4v16"/><path d="M9 20h6"/></svg></span>
+            <span class="setting-body"><span class="setting-label">字体大小</span></span>
+            <span class="setting-value" id="fontRowVal">100%</span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+        </section>
+
+        <!-- 通知(设计稿 toggle) -->
+        <section class="setting-group" aria-label="通知">
+          <label class="setting-row" id="pushToggleRow">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 9a6 6 0 1 0-12 0c0 6-2.5 7-2.5 7h17S18 15 18 9z"/><path d="M10 20a2.2 2.2 0 0 0 4 0"/></svg></span>
+            <span class="setting-body"><span class="setting-label">消息通知</span></span>
+            <input type="checkbox" class="toggle" id="pushToggle" aria-label="消息通知">
+          </label>
+          <!-- 隐藏的开关引擎,真实订阅逻辑还走它 -->
+          <div class="segmented hidden" id="pushSeg" role="group" aria-label="锁屏通知开关">
+            <button type="button" data-val="off">关</button>
+            <button type="button" data-val="on">开</button>
+          </div>
+          <div class="setting-group-hint" id="pushHint"></div>
+        </section>
+
+        <!-- 数据与缓存(设计稿独立分组) -->
+        <section class="setting-group" id="dataGroupView" aria-label="数据与缓存">
+          <button class="setting-row" id="settingsBackupRow" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5 21h-11a2 2 0 0 1-2-2v-9a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2z"/><path d="M9 8V5.5A3.5 3.5 0 0 1 12.5 2 3.5 3.5 0 0 1 16 5.5V8"/></svg></span>
+            <span class="setting-body"><span class="setting-label">数据备份</span></span>
+            <span class="setting-value">JSON · 文本</span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <button class="setting-row" id="settingsClearCacheRow" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 6.5h17"/><path d="M8 6V4.5A1.5 1.5 0 0 1 9.5 3h5A1.5 1.5 0 0 1 16 4.5V6"/><path d="M18.5 6.5 17.6 19a2 2 0 0 1-2 1.8H8.4a2 2 0 0 1-2-1.8L5.5 6.5"/><path d="M10 10.8v5.4M14 10.8v5.4"/></svg></span>
+            <span class="setting-body"><span class="setting-label">清除缓存</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+        </section>
+
+        <!-- AI 配置(设计稿行条目) -->
+        <section class="setting-group" id="configHubView" aria-label="AI 配置">
+          <button class="setting-row" id="openApiConfigBtn" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13.5a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 10.5a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/></svg></span>
+            <span class="setting-body"><span class="setting-label">API 链接</span><span class="setting-sub" id="apiEntryStatus">配置模型连接</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <button class="setting-row" id="openMcpConfigBtn" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="6" width="12" height="12" rx="2"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></svg></span>
+            <span class="setting-body"><span class="setting-label">MCP 工具</span><span class="setting-sub" id="mcpEntryStatus">管理工具服务</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <button class="setting-row" id="openPersonaConfigBtn" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg></span>
+            <span class="setting-body"><span class="setting-label">AI 人设规则</span><span class="setting-sub" id="personaEntryStatus">人设提示词与助手信息</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <button class="setting-row" id="openModelParamsBtn" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
+            <span class="setting-body"><span class="setting-label">模型参数</span><span class="setting-sub" id="modelParamsEntryStatus">温度·上下文·Token·思考</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <button class="setting-row" id="openMemoryConfigBtn" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3H3z"/><path d="M12 11v4"/></svg></span>
+            <span class="setting-body"><span class="setting-label">记忆仓库</span><span class="setting-sub" id="memoryEntryStatus">Memory 入口的跳转地址</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <button class="setting-row" id="openInjectConfigBtn" type="button">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg></span>
+            <span class="setting-body"><span class="setting-label">指令注入</span><span class="setting-sub" id="injectEntryStatus">开关控制 · 规则条目</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+          <div class="setting-row" id="proactiveToggleRow" role="button" tabindex="0" aria-label="主动消息（点击进入详细设置）">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.6 0-3.1-.4-4.3-1.2L3 20l1.2-5.2A8.5 8.5 0 1 1 21 11.5z"/><path d="M7.8 11.5h7.4M11.5 7.8v7.4"/></svg></span>
+            <span class="setting-body"><span class="setting-label">主动消息</span><span class="setting-sub" id="proactiveEntryStatus">按上下文自然发起聊天</span></span>
+            <input type="checkbox" class="toggle" id="proactiveRowToggle" aria-label="主动消息开关">
+          </div>
+        </section>
+
+        <!-- 账号(设计稿分组:退出登录在最后) -->
+        <section class="setting-group" id="accountGroupView" aria-label="账号">
+          <button class="setting-row destructive" id="logoutBtn" type="button">
+            <span class="setting-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+            </span>
+            <span class="setting-body"><span class="setting-label">退出登录</span></span>
+            <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+          </button>
+        </section>
       </div>
-
-      <!-- 主题切换 -->
-      <section class="settings-card">
-        <div class="settings-label">主题</div>
-        <div class="segmented" id="themeSeg" role="group" aria-label="主题切换">
-          <button type="button" data-val="tide">潮汐</button>
-        </div>
-      </section>
-
-      <!-- 壁纸 -->
-      <section class="settings-card">
-        <div class="settings-label">壁纸 <i class="info-i" title="更换聊天背景。预设壁纸原图加载；自定义上传会在本机压缩后保存，只存在这台设备">i</i></div>
-        <div class="wall-picker" id="wallPicker">
-          <button type="button" class="wall-thumb" data-wall="beach.webp" aria-label="默认潮汐壁纸">
-            <span class="wall-thumb-img" style="background-image:url('beach.webp')"></span>
-            <span class="wall-thumb-label">潮汐</span>
-          </button>
-          <button type="button" class="wall-thumb wall-thumb-add" id="wallUploadBtn" aria-label="上传自定义壁纸">
-            <span class="wall-thumb-img wall-thumb-add-plus">＋</span>
-            <span class="wall-thumb-label">上传</span>
-          </button>
-          <button type="button" class="wall-thumb" data-wall="" id="wallResetThumb" aria-label="恢复默认壁纸">
-            <span class="wall-thumb-img wall-thumb-reset">↺</span>
-            <span class="wall-thumb-label">默认</span>
-          </button>
-        </div>
-        <div class="wall-quality-row">
-          <span class="param-unit">上传画质</span>
-          <div class="segmented" id="wallQualitySeg" role="group" aria-label="壁纸压缩质量">
-            <button type="button" data-val="hd" class="active">高清</button>
-            <button type="button" data-val="lite">省空间</button>
-          </div>
-        </div>
-        <input type="file" id="wallInput" accept="image/*" class="hidden">
-      </section>
-
-      <!-- 字体大小 -->
-      <section class="settings-card">
-        <div class="settings-label">字体大小 <i class="info-i" title="调节聊天气泡文字的显示大小，只影响这台设备">i</i></div>
-        <div class="param-slider-row">
-          <input id="fontScaleInput" class="param-slider" type="range" min="0.8" max="1.6" step="0.05" value="1" aria-label="字体大小">
-          <span class="param-val" id="fontScaleInputVal">100%</span>
-        </div>
-      </section>
-
-      <!-- 自定义样式 -->
-      <section class="settings-card">
-        <div class="settings-label">自定义样式 CSS <i class="info-i" title="把 CSS 贴进来，实时覆盖默认外观，只存在这台设备。点「清空」即回到默认">i</i></div>
-        <textarea id="userCssInput" class="config-textarea" rows="6" placeholder="例如：&#10;.bubble-ai { border-radius: 22px; }&#10;.menu-title { font-size: 20px; }" autocomplete="off" spellcheck="false"></textarea>
-        <div class="config-actions">
-          <button class="config-action primary" id="userCssApplyBtn" type="button">应用样式</button>
-          <button class="config-action danger" id="userCssClearBtn" type="button">清空</button>
-        </div>
-        <div class="push-hint" id="userCssHint"></div>
-      </section>
-
-      <!-- 锁屏通知 -->
-      <section class="settings-card">
-        <div class="settings-label">锁屏通知 <i class="info-i" title="Claude发消息、而你没在看时，推送到手机锁屏">i</i></div>
-        <div class="segmented" id="pushSeg" role="group" aria-label="锁屏通知开关">
-          <button type="button" data-val="off">关</button>
-          <button type="button" data-val="on">开</button>
-        </div>
-        <div class="push-hint" id="pushHint"></div>
-      </section>
-
-      <!-- AI body 状态（只读：部署为服务器 API loop） -->
-      <section class="settings-card">
-        <div class="settings-label">连接状态 <i class="info-i" title="当前由服务器上的 API loop 接消息">i</i></div>
-        <div class="push-hint" id="brainHint"></div>
-      </section>
-
-      <section class="settings-card" id="configHubView">
-        <div class="settings-label">AI 配置</div>
-        <div class="config-hub">
-          <button class="config-entry" id="openApiConfigBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8.5"/></svg>
-            <span class="config-entry-copy"><strong>AI API</strong><span id="apiEntryStatus">配置模型连接</span></span>
-          </button>
-          <button class="config-entry" id="openMcpConfigBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3v6M16 3v6M5 9h14v4a7 7 0 0 1-14 0z"/><path d="M12 20v-4"/></svg>
-            <span class="config-entry-copy"><strong>MCP 工具</strong><span id="mcpEntryStatus">管理工具服务</span></span>
-          </button>
-          <button class="config-entry" id="openPersonaConfigBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
-            <span class="config-entry-copy"><strong>AI 人设</strong><span id="personaEntryStatus">人设提示词与助手信息</span></span>
-          </button>
-          <button class="config-entry" id="openModelParamsBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-            <span class="config-entry-copy"><strong>模型参数</strong><span id="modelParamsEntryStatus">温度·上下文·Token·思考</span></span>
-          </button>
-          <button class="config-entry" id="openMemoryConfigBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z"/><path d="M3 4a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3H3z"/><path d="M12 11v4"/></svg>
-            <span class="config-entry-copy"><strong>记忆仓库</strong><span id="memoryEntryStatus">Memory 入口的跳转地址</span></span>
-          </button>
-          <button class="config-entry" id="openInjectConfigBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>
-            <span class="config-entry-copy"><strong>指令注入</strong><span id="injectEntryStatus">开关控制 · 规则条目</span></span>
-          </button>
-          <button class="config-entry" id="openProactiveConfigBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.6 0-3.1-.4-4.3-1.2L3 20l1.2-5.2A8.5 8.5 0 1 1 21 11.5z"/><path d="M7.8 11.5h7.4M11.5 7.8v7.4"/></svg>
-            <span class="config-entry-copy"><strong>主动消息</strong><span id="proactiveEntryStatus">按上下文自然发起聊天</span></span>
-          </button>
-        </div>
-      </section>
-
-      <!-- 数据与缓存(设计稿独立分组) -->
-      <section class="settings-card" id="dataGroupView">
-        <div class="settings-label">数据与缓存</div>
-        <div class="config-hub">
-          <button class="config-entry" id="openDataConfigBtn" type="button">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
-            <span class="config-entry-copy"><strong>数据管理</strong><span id="dataEntryStatus">导出记录 · 清空窗口 · 清缓存</span></span>
-          </button>
-        </div>
-      </section>
 
       <section class="settings-card config-view" id="apiConfigView">
         <div class="config-view-head"><button class="config-view-back" data-config-back type="button" aria-label="返回连接与工具">‹</button><div class="config-view-title"><strong>AI API</strong><span>管理多个 OpenAI 兼容接口（自动 fallback）</span></div></div>
@@ -2949,18 +3090,82 @@
         <div class="push-hint" id="clearCacheHint">清除后页面会自动刷新</div>
       </section>
 
-      <!-- 账号(设计稿分组:退出登录在最后) -->
-      <section class="settings-card" id="accountGroupView">
-        <div class="settings-label">账号</div>
-        <button class="action-row" id="logoutBtn" type="button">
-          <span class="action-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
-          </span>
-          <span class="action-name" style="color:var(--danger)">退出登录</span>
-          <span class="action-chevron">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
-          </span>
-        </button>
+      <!-- ── 外观子页(设计稿 appearance 页映射进 SPA) ── -->
+      <section class="settings-card config-view" id="appearanceView">
+        <div class="config-view-head"><button class="config-view-back" data-config-back type="button" aria-label="返回设置">‹</button><div class="config-view-title"><strong>外观</strong><span>主题 · 配色 · 壁纸</span></div></div>
+
+        <!-- 当前预览 -->
+        <div class="appearance-preview" id="appearancePreview" role="img" aria-label="当前壁纸预览">
+          <span class="appearance-preview-label">海滩</span>
+          <span class="appearance-preview-badge">使用中</span>
+        </div>
+
+        <!-- 壁纸选择 -->
+        <div class="config-field-label">壁纸选择 <i class="info-i" title="更换聊天背景。预设壁纸原图加载；自定义上传会在本机压缩后保存，只存在这台设备">i</i></div>
+        <div class="wall-picker" id="wallPicker">
+          <button type="button" class="wall-thumb" data-wall="beach.webp" aria-label="默认潮汐壁纸">
+            <span class="wall-thumb-img" style="background-image:url('beach.webp')"></span>
+            <span class="wall-thumb-label">潮汐</span>
+          </button>
+          <button type="button" class="wall-thumb wall-thumb-add" id="wallUploadBtn" aria-label="上传自定义壁纸">
+            <span class="wall-thumb-img wall-thumb-add-plus">＋</span>
+            <span class="wall-thumb-label">上传</span>
+          </button>
+          <button type="button" class="wall-thumb" data-wall="" id="wallResetThumb" aria-label="恢复默认壁纸">
+            <span class="wall-thumb-img wall-thumb-reset">↺</span>
+            <span class="wall-thumb-label">默认</span>
+          </button>
+        </div>
+        <div class="wall-quality-row">
+          <span class="param-unit">上传画质</span>
+          <div class="segmented" id="wallQualitySeg" role="group" aria-label="壁纸压缩质量">
+            <button type="button" data-val="hd" class="active">高清</button>
+            <button type="button" data-val="lite">省空间</button>
+          </div>
+        </div>
+        <input type="file" id="wallInput" accept="image/*" class="hidden">
+
+        <!-- 主题配色 -->
+        <div class="config-field-label">主题配色</div>
+        <div class="accent-row" role="radiogroup" aria-label="选择强调色" id="accentPicker">
+          <button type="button" class="accent-swatch selected" data-accent="coastal" style="background:#A8CCE0" role="radio" aria-label="海岸蓝" aria-checked="true"></button>
+          <button type="button" class="accent-swatch" data-accent="rose" style="background:#E08A96" role="radio" aria-label="玫瑰粉" aria-checked="false"></button>
+          <button type="button" class="accent-swatch" data-accent="mint" style="background:#A8D8C0" role="radio" aria-label="薄荷绿" aria-checked="false"></button>
+          <button type="button" class="accent-swatch" data-accent="sand" style="background:#E6C9A8" role="radio" aria-label="沙滩金" aria-checked="false"></button>
+          <button type="button" class="accent-swatch" data-accent="lavender" style="background:#B8A8E0" role="radio" aria-label="薰衣草紫" aria-checked="false"></button>
+        </div>
+
+        <!-- 界面风格(浅色/自动待后续主题系统,当前只有深色) -->
+        <div class="config-field-label">界面风格</div>
+        <div class="segmented" id="styleSeg" role="group" aria-label="界面风格">
+          <button type="button" data-val="dark" class="active">深色</button>
+          <button type="button" data-val="light" disabled title="浅色主题后续版本开放">浅色</button>
+          <button type="button" data-val="auto" disabled title="跟随系统后续版本开放">自动</button>
+        </div>
+
+        <!-- 透明度 -->
+        <div class="config-field-label">透明度</div>
+        <div class="param-slider-row">
+          <span class="param-unit">玻璃强度</span>
+          <input id="glassSlider" class="param-slider" type="range" min="0" max="100" step="1" value="65" aria-label="玻璃强度">
+          <span class="param-val" id="glassSliderVal">65%</span>
+        </div>
+
+        <!-- 字体大小 -->
+        <div class="config-field-label">字体大小 <i class="info-i" title="调节聊天气泡文字的显示大小，只影响这台设备">i</i></div>
+        <div class="param-slider-row">
+          <input id="fontScaleInput" class="param-slider" type="range" min="0.8" max="1.6" step="0.05" value="1" aria-label="字体大小">
+          <span class="param-val" id="fontScaleInputVal">100%</span>
+        </div>
+
+        <!-- 自定义 CSS -->
+        <div class="config-field-label">自定义 CSS <i class="info-i" title="把 CSS 贴进来，实时覆盖默认外观，只存在这台设备。点「清空」即回到默认">i</i></div>
+        <textarea id="userCssInput" class="config-textarea" rows="6" placeholder="例如：&#10;.bubble-ai { border-radius: 22px; }" autocomplete="off" spellcheck="false"></textarea>
+        <div class="config-actions">
+          <button class="config-action primary" id="userCssApplyBtn" type="button">应用样式</button>
+          <button class="config-action danger" id="userCssClearBtn" type="button">清空</button>
+        </div>
+        <div class="push-hint" id="userCssHint"></div>
       </section>
 
       <!-- / 上下文阈值假按键已移除 -->
@@ -3249,7 +3454,12 @@ const personaInput = $("#personaInput"), aiNameInput = $("#aiNameInput"), person
 const temperatureInput = $("#temperatureInput"), topPInput = $("#topPInput"), historyNInput = $("#historyNInput"), maxTokensInput = $("#maxTokensInput"), maxTokensAutoCheck = $("#maxTokensAutoInput"), modelParamsSaveBtn = $("#modelParamsSaveBtn"), modelParamsConfigHint = $("#modelParamsConfigHint");
 const injectConfigView = $("#injectConfigView"), openInjectConfigBtn = $("#openInjectConfigBtn"), injectEnabledInput = $("#injectEnabledInput"), injectEntriesList = $("#injectEntriesList"), injectAddBtn = $("#injectAddBtn"), injectSaveBtn = $("#injectSaveBtn"), injectConfigHint = $("#injectConfigHint"), injectEntryStatus = $("#injectEntryStatus");
 const proactiveConfigView = $("#proactiveConfigView"), openProactiveConfigBtn = $("#openProactiveConfigBtn"), proactiveEnabledInput = $("#proactiveEnabledInput"), proactiveIdleInput = $("#proactiveIdleInput"), proactiveCooldownInput = $("#proactiveCooldownInput"), proactiveMaxDayInput = $("#proactiveMaxDayInput"), proactiveQuietEnabledInput = $("#proactiveQuietEnabledInput"), proactiveQuietStartInput = $("#proactiveQuietStartInput"), proactiveQuietEndInput = $("#proactiveQuietEndInput"), proactiveTzSelect = $("#proactiveTzSelect"), proactiveSaveBtn = $("#proactiveSaveBtn"), proactiveConfigHint = $("#proactiveConfigHint"), proactiveEntryStatus = $("#proactiveEntryStatus");
-const dataConfigView = $("#dataConfigView"), openDataConfigBtn = $("#openDataConfigBtn"), dataEntryStatus = $("#dataEntryStatus"), dataGroupView = $("#dataGroupView");
+const dataConfigView = $("#dataConfigView"), dataGroupView = $("#dataGroupView");
+const appearanceView = $("#appearanceView"), appearancePreview = $("#appearancePreview");
+const settingsAppearanceRow = $("#settingsAppearanceRow"), settingsFontRow = $("#settingsFontRow");
+const settingsBackupRow = $("#settingsBackupRow"), settingsClearCacheRow = $("#settingsClearCacheRow");
+const accentPicker = $("#accentPicker"), glassSlider = $("#glassSlider"), glassSliderVal = $("#glassSliderVal"), styleSeg = $("#styleSeg");
+const pushToggle = $("#pushToggle"), proactiveRowToggle = $("#proactiveRowToggle");
 const memoryConfigView = $("#memoryConfigView"), openMemoryConfigBtn = $("#openMemoryConfigBtn"), memoryUrlInput = $("#memoryUrlInput"), memorySaveBtn = $("#memorySaveBtn"), memoryConfigHint = $("#memoryConfigHint");
 const roomPanel = $("#roomPanel"), roomCloseBtn = $("#roomClose");
 const scenarioSeg = $("#scenarioSeg"), roomList = $("#roomList"), addRoomBtn = $("#addRoomBtn"), homeTemplateBtn = $("#homeTemplateBtn"), roomSaveBtn = $("#roomSaveBtn"), roomConfigHint = $("#roomConfigHint");
@@ -3624,6 +3834,129 @@ if (userCssClearBtn) userCssClearBtn.addEventListener("click", () => {
   applyUserCss("");
   if (userCssHint) userCssHint.textContent = "";
   showToast("已清空，恢复默认外观");
+});
+
+/* ════════ 外观子页(设计稿):预览卡 / 配色 / 玻璃强度 + 设置页入口行 ════════ */
+const ACCENT_KEY = "companion_accent";
+const GLASS_KEY  = "companion_glass";
+const ACCENTS = {
+  coastal:  [168,204,224],
+  rose:     [224,138,150],
+  mint:     [168,216,192],
+  sand:     [230,201,168],
+  lavender: [184,168,224],
+};
+function currentAccent(){
+  let k = null;
+  try{ k = localStorage.getItem(ACCENT_KEY); }catch(e){}
+  return ACCENTS[k] ? k : "coastal";
+}
+function currentGlass(){
+  let v = 65;
+  try{ v = parseInt(localStorage.getItem(GLASS_KEY) || "65", 10); }catch(e){}
+  if (isNaN(v)) v = 65;
+  return Math.max(0, Math.min(100, v));
+}
+function applyGlass(v, accentRgb){
+  const c = accentRgb || ACCENTS[currentAccent()];
+  const a = v / 100;
+  const s = document.documentElement.style;
+  s.setProperty("--card-bg", `rgba(255,255,255,${(a*0.22).toFixed(3)})`);
+  s.setProperty("--composer-bg", `rgba(255,255,255,${(a*0.18).toFixed(3)})`);
+  s.setProperty("--bubble-ai-bg", `rgba(255,255,255,${(a*0.22).toFixed(3)})`);
+  s.setProperty("--bubble-human-bg", `rgba(${c[0]},${c[1]},${c[2]},${(a*0.40).toFixed(3)})`);
+  s.setProperty("--field-bg", `rgba(255,255,255,${(a*0.18).toFixed(3)})`);
+  if (glassSlider) glassSlider.value = v;
+  if (glassSliderVal) glassSliderVal.textContent = v + "%";
+}
+function applyAccent(key){
+  const c = ACCENTS[key] || ACCENTS.coastal;
+  const s = document.documentElement.style;
+  const rgb = `rgb(${c[0]},${c[1]},${c[2]})`;
+  const tick = `rgb(${Math.round(c[0]*0.82)},${Math.round(c[1]*0.82)},${Math.round(c[2]*0.82)})`;
+  s.setProperty("--accent", rgb);
+  s.setProperty("--send-bg", rgb);
+  s.setProperty("--slider-thumb", rgb);
+  s.setProperty("--think-label", rgb);
+  s.setProperty("--tick", tick);
+  s.setProperty("--seg-thumb", `rgba(${c[0]},${c[1]},${c[2]},.30)`);
+  s.setProperty("--info-ring", `rgba(${c[0]},${c[1]},${c[2]},.38)`);
+  applyGlass(currentGlass(), c);
+  if (accentPicker){
+    accentPicker.querySelectorAll(".accent-swatch").forEach(b => {
+      const sel = b.dataset.accent === key;
+      b.classList.toggle("selected", sel);
+      b.setAttribute("aria-checked", String(sel));
+    });
+  }
+}
+function refreshAppearancePreview(){
+  if (!appearancePreview) return;
+  appearancePreview.style.backgroundImage = `url("${currentWall()}")`;
+  const label = appearancePreview.querySelector(".appearance-preview-label");
+  let hasCustom = false;
+  try{ hasCustom = !!localStorage.getItem(WALL_CUSTOM_KEY); }catch(e){}
+  if (label) label.textContent = hasCustom ? "自定义" : "海滩";
+}
+/* 进入外观子页时若换了壁纸,预览跟着走 */
+if (wallPicker) wallPicker.addEventListener("click", e => {
+  const t = e.target.closest(".wall-thumb");
+  if (!t || t === wallUploadBtn) return;
+  setTimeout(refreshAppearancePreview, 400);   // 等 applyWall 完成后再回显
+});
+/* 初始化回显 */
+applyAccent(currentAccent());
+if (accentPicker) accentPicker.addEventListener("click", (e) => {
+  const b = e.target.closest(".accent-swatch");
+  if (!b) return;
+  try{ localStorage.setItem(ACCENT_KEY, b.dataset.accent); }catch(_){}
+  applyAccent(b.dataset.accent);
+  buzz(10);
+});
+if (glassSlider) glassSlider.addEventListener("input", () => {
+  const v = Number(glassSlider.value);
+  try{ localStorage.setItem(GLASS_KEY, String(v)); }catch(_){}
+  applyGlass(v);
+});
+
+/* 设置页入口行:外观 / 字体大小 都进外观子页 */
+if (settingsAppearanceRow) settingsAppearanceRow.addEventListener("click", () => setConfigView("appearance"));
+if (settingsFontRow) settingsFontRow.addEventListener("click", () => setConfigView("appearance"));
+
+/* 主动消息行的 toggle + 点击进详情 */
+const proactiveToggleRow = $("#proactiveToggleRow");
+if (proactiveRowToggle){
+  proactiveRowToggle.addEventListener("change", async () => {
+    const want = proactiveRowToggle.checked;
+    if (proactiveEnabledInput) proactiveEnabledInput.checked = want;
+    if (USE_MOCK || !secret){
+      showToast(USE_MOCK ? "演示模式：开关仅本地显示" : "先登录连接再开主动消息");
+      proactiveRowToggle.checked = !want;
+      return;
+    }
+    const payload = { proactive: {
+      enabled: want,
+      min_idle_hours: Number(proactiveIdleInput ? proactiveIdleInput.value : 3),
+      cooldown_hours: Number(proactiveCooldownInput ? proactiveCooldownInput.value : 4),
+      max_per_day: Number(proactiveMaxDayInput ? proactiveMaxDayInput.value : 3),
+      quiet_enabled: proactiveQuietEnabledInput ? proactiveQuietEnabledInput.checked : true,
+      quiet_start: (proactiveQuietStartInput && proactiveQuietStartInput.value) || "23:00",
+      quiet_end: (proactiveQuietEndInput && proactiveQuietEndInput.value) || "09:00",
+      tz: (proactiveTzSelect && proactiveTzSelect.value) || "Asia/Shanghai",
+    }};
+    const ok = await saveLoopConfig(payload, null);
+    if (!ok){
+      proactiveRowToggle.checked = !want;
+      if (proactiveEnabledInput) proactiveEnabledInput.checked = !want;
+    }else{
+      await loadProactiveConfig({ keepHint: true });
+    }
+  });
+}
+if (proactiveToggleRow) proactiveToggleRow.addEventListener("click", (e) => {
+  if (e.target.closest("#proactiveRowToggle")) return;   // toggle 自己处理开关
+  setConfigView("proactive");
+  loadProactiveConfig();
 });
 
 /* 本地预览便捷:仅 localhost 下,带 #preview-menu 直接亮出 hub 菜单(线上域名不生效,安全) */
@@ -4370,9 +4703,13 @@ function initFontScale(){
   }catch(_){}
   sl.value = v;
   applyFontScale(v);
+  const rowVal = document.getElementById("fontRowVal");
+  const paintRow = () => { if (rowVal) rowVal.textContent = Math.round(parseFloat(sl.value) * 100) + "%"; };
+  paintRow();
   sl.addEventListener("input", () => {
     applyFontScale(parseFloat(sl.value) || 1);
     try{ localStorage.setItem(FS_KEY, String(sl.value)); }catch(_){}
+    paintRow();
   });
 }
 function initParamSliders(){
@@ -4557,9 +4894,10 @@ async function saveBrain(target){
 
 let savedLoopConfig = null;
 function setConfigView(view){
-  if (!configHubView || !apiConfigView || !mcpConfigView) return;
-  configHubView.classList.toggle("hidden", view !== "hub");
-  if (dataGroupView) dataGroupView.classList.toggle("hidden", view !== "hub");
+  if (!apiConfigView || !mcpConfigView) return;
+  // 主设置列表(configHubView/dataGroupView 等组都在 profileGroups 容器里)↔ 子视图切换
+  const groups = $("#profileGroups");
+  if (groups) groups.classList.toggle("hidden", view !== "hub");
   apiConfigView.classList.toggle("active", view === "api");
   mcpConfigView.classList.toggle("active", view === "mcp");
   if (personaConfigView) personaConfigView.classList.toggle("active", view === "persona");
@@ -4568,6 +4906,10 @@ function setConfigView(view){
   if (proactiveConfigView) proactiveConfigView.classList.toggle("active", view === "proactive");
   if (dataConfigView) dataConfigView.classList.toggle("active", view === "data");
   if (memoryConfigView) memoryConfigView.classList.toggle("active", view === "memory");
+  if (appearanceView){
+    appearanceView.classList.toggle("active", view === "appearance");
+    if (view === "appearance") refreshAppearancePreview();
+  }
 }
 function resetMcpForm(){
   editingMcpIndex = null;
@@ -4593,6 +4935,7 @@ function updateConfigEntryStatus(){
   if (proactiveEntryStatus) {
     const p = savedLoopConfig && savedLoopConfig.proactive;
     proactiveEntryStatus.textContent = p && p.enabled ? `已开启 · 今日已发 ${p.sent_today ?? 0} 条` : "按上下文自然发起聊天";
+    if (proactiveRowToggle) proactiveRowToggle.checked = !!(p && p.enabled);
   }
 }
 const MCP_TOOLS_CACHE = {};
@@ -4892,7 +5235,7 @@ function buzz(ms){
 /* 全局按键轻震：点任何按钮给一个短促触感（Android 生效；iOS 无 API，自动跳过，
    靠上面的 :active 视觉反馈兜底） */
 document.addEventListener("click", (e) => {
-  const el = e.target.closest("button, .backbtn, .topbtn, .floatbtn, .emojibtn, .config-entry, .config-view-back, .session-item, .meta-card-row, .chip, [role='button']");
+  const el = e.target.closest("button, .backbtn, .topbtn, .floatbtn, .emojibtn, .config-entry, .config-view-back, .session-item, .meta-card-row, .chip, .setting-row, [role='button']");
   if (el && !el.disabled) buzz(10);
 }, true);
 async function saveLoopConfig(payload, hint){
@@ -4978,11 +5321,15 @@ function fmtExportTs(ts){
   try{ const d = new Date(ts); if (!isNaN(d)) return d.toLocaleString(); }catch(_){}
   return ts || "";
 }
-openDataConfigBtn?.addEventListener("click", () => {
+/* 数据组两个入口行(设计稿:数据备份 / 清除缓存)都进数据管理子视图 */
+function openDataView(){
   setConfigView("data");
   const item = activeSessionObj();
   const title = item ? (item.title || "新对话") : "旧主线 / Desktop 记录";
   if (clearSessionHint) clearSessionHint.textContent = `当前窗口：「${title}」。清空后窗口从空白重新开始，删除不可恢复。`;
+}
+[settingsBackupRow, settingsClearCacheRow].forEach(btn => {
+  if (btn) btn.addEventListener("click", openDataView);
 });
 if (exportScopeSeg) exportScopeSeg.addEventListener("click", (e) => {
   const btn = e.target.closest("button[data-val]");
@@ -6141,6 +6488,8 @@ function openStream(){
   }
   function paint(on){
     seg.querySelectorAll("button").forEach((b) => b.classList.toggle("active", (b.dataset.val === "on") === !!on));
+    const pt = document.getElementById("pushToggle");
+    if (pt) pt.checked = !!on;      // 设计稿 toggle 同步
   }
   function say(msg){ if (hint) hint.textContent = msg || ""; }
 
@@ -6242,6 +6591,14 @@ function openStream(){
     }catch(_){ paint(false); }
   })();
 })();
+
+/* 设计稿 toggle → 驱动隐藏的 pushSeg 引擎(真实订阅逻辑都在那里;失败时 paint(false) 会把 toggle 拨回去) */
+if (pushToggle) pushToggle.addEventListener("change", () => {
+  const seg = $("#pushSeg");
+  if (!seg) return;
+  const btn = seg.querySelector(`button[data-val="${pushToggle.checked ? "on" : "off"}"]`);
+  if (btn) btn.click();
+});
 
 /* ════════════ 连接状态 ════════════ */
 function renderStatus(){
