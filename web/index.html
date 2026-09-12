@@ -1860,6 +1860,7 @@
     transition: transform .38s var(--ease-soft), opacity .28s ease;
   }
   .menu-panel.open{ transform: none; opacity: 1; pointer-events: auto; }
+  .menu-panel.no-anim{ transition: none !important; }   /* 落地首页时瞬时就位,不播滑入动画(否则先闪一帧聊天页) */
   .menu-page{
     position: absolute; inset: 0;
     display: flex; flex-direction: column;
@@ -3655,10 +3656,19 @@ function refreshDays(){
   if (menuDaysEl) menuDaysEl.textContent = daysTogether();
 }
 let menuCloseTimer = null;
-function openMenu(){
+function openMenu(instant){
   if (!menuPanel) return;
   refreshDays();
   clearTimeout(menuCloseTimer);
+  if (instant){
+    // 直接进入 app 落首页:同步就位、禁掉过渡,保证第一帧就是首页(不闪聊天页)
+    menuPanel.classList.add("no-anim");
+    menuPanel.classList.remove("hidden");
+    menuPanel.classList.add("open");
+    void menuPanel.offsetWidth;   // 强制 reflow,让 no-anim 状态下的终态立即生效
+    requestAnimationFrame(() => menuPanel.classList.remove("no-anim"));   // 之后的开关恢复动画
+    return;
+  }
   menuPanel.classList.remove("hidden");
   requestAnimationFrame(() => requestAnimationFrame(() => menuPanel.classList.add("open")));
 }
@@ -3669,7 +3679,7 @@ function closeMenu(){
   menuCloseTimer = setTimeout(() => menuPanel.classList.add("hidden"), 400);
 }
 refreshDays();
-if (backBtn) backBtn.addEventListener("click", openMenu);
+if (backBtn) backBtn.addEventListener("click", () => openMenu());   // 包一层:避免事件对象被当成 instant 参数
 if (menuPanel){
   menuPanel.addEventListener("click", (e) => {
     const item = e.target.closest(".menu-item");
@@ -8888,7 +8898,7 @@ function startChat(initialMsgs, { connect = true, fromCache = false, landHome = 
   if (!fromCache) scheduleCacheSave();
   if (connect) startRealtime();
   refreshContextStatus();
-  if (landHome) openMenu();   // 进入 app 先落在首页(springboard),聊天从首页点进来
+  if (landHome) openMenu(true);   // 进入 app 先落在首页(springboard),瞬时到位不闪聊天页;聊天从首页点进来
 }
 
 async function init(){
