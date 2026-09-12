@@ -2,7 +2,7 @@
    IMPORTANT: bump CACHE on every front-end change, or installed clients keep the
    old shell (the precached index.html won't refresh until the SW reinstalls). */
 const AI_NAME = "Claude";          // push-title fallback; keep in sync with index.html CONFIG.AI_NAME
-const CACHE = "companion-v69";
+const CACHE = "companion-v70";
 const PRECACHE = [
   "./index.html",
   "./memory.html",
@@ -22,6 +22,22 @@ const PRECACHE = [
   "./assets/sdv/bubble_tail.png",
   "./assets/sdv/avatar_frame.png",
   "./assets/sdv/deco_cat.png",
+  /* ── 美化素材(用户抠图) ── */
+  "./assets/sdv/frame_photo.png",
+  "./assets/sdv/frame_cat.png",
+  "./assets/sdv/frame_wood.png",
+  "./assets/sdv/bar_input.png",
+  "./assets/sdv/paper_letter.png",
+  "./assets/sdv/photo_scene.png",
+  "./assets/sdv/deco_cake.png",
+  "./assets/sdv/icon_chat.png",
+  "./assets/sdv/icon_room.png",
+  "./assets/sdv/icon_period.png",
+  "./assets/sdv/icon_cat.png",
+  "./assets/sdv/icon_fridge.png",
+  "./assets/sdv/icon_memory.png",
+  "./assets/sdv/icon_tides.png",
+  "./assets/sdv/icon_settings.png",
 ];
 
 self.addEventListener("install", (e) => {

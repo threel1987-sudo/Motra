@@ -90,16 +90,17 @@ html[data-theme="sdv"] .login::before{
 html[data-theme="sdv"] .login-card{
   background: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
-  border: 22px solid transparent;
-  border-image: url("assets/sdv/frame_card.png") 24 fill / 22px / 0 stretch;
+  /* 猫咪符纹框(839x477):细符纹边 + 右下角趴猫,猫留在不拉伸的角区 */
+  border: 8px 100px 62px 8px solid transparent;
+  border-image: url("assets/sdv/frame_cat.png") 20 356 213 20 fill / 8px 100px 62px 8px stretch;
   border-radius: 0;
-  box-shadow: 8px 8px 0 rgba(44,35,28,.28);
+  box-shadow: none;
   padding: 18px 14px 16px;
 }
 html[data-theme="sdv"] .login-brand{ color: var(--rose); letter-spacing: .3em; }
 html[data-theme="sdv"] .login .orb{
   width: 84px; height: 84px; border-radius: 0;
-  background-image: url("assets/sdv/deco_cat.png");
+  background-image: url("assets/sdv/icon_cat.png");
   background-size: contain; background-repeat: no-repeat; background-position: center;
   box-shadow: none;
   animation: none;
@@ -108,21 +109,19 @@ html[data-theme="sdv"] .login h1{ color: var(--ink); text-shadow: 2px 2px 0 rgba
 html[data-theme="sdv"] .login .sub{ color: var(--ink-soft); }
 html[data-theme="sdv"] .login .login-label{ color: var(--ink-soft); }
 html[data-theme="sdv"] .login input{
-  /* frame_input.png 不是闭合四边框(顶角透明、底部整条投影),九宫格必断;
-     改用 sdv 家族统一语言:奶油底 + 棕描边 + 内凹硬阴影 */
-  background: var(--cream);
-  border: 3px solid var(--line-brown);
-  border-radius: 6px;
-  box-shadow: inset 2px 2px 0 rgba(60,42,32,.10);
+  /* 长条木框素材(顶木条+奶油纸面+底影,整张铺,不九宫格) */
+  background: url("assets/sdv/bar_input.png") center / 100% 100% no-repeat;
+  border: none;
+  border-radius: 3px;
+  box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
-  padding: 10px 12px;
+  padding: 11px 16px;
   color: var(--ink);
   font-family: var(--font-cn);
 }
 html[data-theme="sdv"] .login input:focus{
-  border-color: var(--line-brown);
-  box-shadow: inset 2px 2px 0 rgba(60,42,32,.10), 0 0 0 3px rgba(194,88,124,.22);
-  filter: none;
+  filter: brightness(1.04);
+  outline: none;
 }
 html[data-theme="sdv"] .login button{
   margin-top: 4px;
@@ -249,18 +248,18 @@ html[data-theme="sdv"] .think-caption, html[data-theme="sdv"] .act-label{
 }
 html[data-theme="sdv"] .think-state, html[data-theme="sdv"] .act-state{ color: var(--rose); }
 
-/* 底部输入区:frame_input.png 是「顶木条+纸+整条底影」的开放设计,九宫格必断,
-   且 20px 边框把 min-content 撑爆、发送键被顶出屏。
-   改用家族统一语言;min-width:0 让 flex 能正常收缩 */
+/* 底部输入区:长条木框素材整张铺满(不九宫格,保花朵装饰完整);
+   min-width:0 让 flex 正常收缩,发送键不被顶出屏 */
 html[data-theme="sdv"] .composer{
   background: linear-gradient(to top, rgba(248,243,237,.96) 0%, rgba(248,243,237,.78) 55%, transparent 100%);
 }
 html[data-theme="sdv"] .composer .field{
   min-width: 0;
-  background: var(--cream);
-  border: 3px solid var(--line-brown);
-  border-radius: 10px;
-  box-shadow: 3px 3px 0 rgba(60,42,32,.20);
+  /* 同登录框:整张长条木框素材铺满,不九宫格 */
+  background: url("assets/sdv/bar_input.png") center / 100% 100% no-repeat;
+  border: none;
+  border-radius: 3px;
+  box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 html[data-theme="sdv"] .composer textarea{
@@ -330,17 +329,28 @@ html[data-theme="sdv"] .menu-page{
 html[data-theme="sdv"] .menu-page::before{
   background: linear-gradient(180deg, rgba(248,243,237,.12) 0%, rgba(248,243,237,.06) 40%, rgba(44,58,75,.20) 100%);
 }
-/* 图标瓷砖：奶油底 + 棕描边 + 硬阴影 */
+/* 图标瓷砖:像素图标直接落地(去奶油盒,SVG 只在 tide 主题用) */
 html[data-theme="sdv"] .app-tile .app-icon{
-  background: var(--cream);
-  border: 3px solid var(--line-brown);
-  border-radius: 12px;
-  box-shadow: 0 4px 0 rgba(60,42,32,.25);
+  background: transparent center / contain no-repeat;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
+  image-rendering: pixelated;
+  filter: drop-shadow(2px 2px 0 rgba(44,35,28,.25));
 }
+html[data-theme="sdv"] .app-tile .app-icon svg{ display: none; }
+html[data-theme="sdv"] .app-tile[data-menu="chat"]     .app-icon{ background-image: url("assets/sdv/icon_chat.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="room"]     .app-icon{ background-image: url("assets/sdv/icon_room.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="period"]   .app-icon{ background-image: url("assets/sdv/icon_period.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="cat"]      .app-icon{ background-image: url("assets/sdv/icon_cat.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="fridge"]   .app-icon{ background-image: url("assets/sdv/icon_fridge.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="memory"]   .app-icon{ background-image: url("assets/sdv/icon_memory.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="tides"]    .app-icon{ background-image: url("assets/sdv/icon_tides.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="settings"] .app-icon{ background-image: url("assets/sdv/icon_settings.png"); }
 html[data-theme="sdv"] .app-tile:active .app-icon{
   transform: translateY(3px);
-  box-shadow: 0 1px 0 rgba(60,42,32,.25);
+  filter: drop-shadow(1px 1px 0 rgba(44,35,28,.25));
 }
 html[data-theme="sdv"] .app-tile .app-label{
   color: var(--ink);
@@ -351,29 +361,58 @@ html[data-theme="sdv"] .app-tile .app-label{
   box-shadow: 2px 2px 0 rgba(60,42,32,.18);
   text-shadow: none;
 }
-/* 小部件：棕色小方框素材 */
+/* 小部件：木框素材(自带右下投影) */
 html[data-theme="sdv"] .widget-anniversary,
-html[data-theme="sdv"] .widget-board,
-html[data-theme="sdv"] .widget-photo{
-  border: 16px solid transparent;
-  border-image: url("assets/sdv/frame_card.png") 24 fill / 16px / 0 stretch;
+html[data-theme="sdv"] .widget-board{
+  border: 14px solid transparent;
+  border-image: url("assets/sdv/frame_wood.png") 230 fill / 14px / 0 stretch;
   border-radius: 0;
-  box-shadow: 5px 5px 0 rgba(44,35,28,.22);
+  box-shadow: none;
   background: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
   color: var(--ink);
   image-rendering: pixelated;
+}
+/* 照片 widget:风景照 + 花卉相框叠层(中心透明,四角花藤搭在照片上) */
+html[data-theme="sdv"] .widget-photo{
+  border: none; box-shadow: none; background: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  border-radius: 0;
+}
+html[data-theme="sdv"] .widget-photo__bg{
+  background-image: url("assets/sdv/photo_scene.png");
+  background-size: cover; background-position: center;
+}
+html[data-theme="sdv"] .widget-photo::after{
+  content:""; position:absolute; inset:0; z-index:1;
+  background: url("assets/sdv/frame_photo.png") center / 100% 100% no-repeat;
+  pointer-events:none;
+}
+html[data-theme="sdv"] .widget-photo__scrim{ display:none; }
+html[data-theme="sdv"] .widget-photo__label{
+  z-index:2;
+  color: #fff8ee;
+  text-shadow: 1px 1px 0 rgba(44,35,28,.7);
+}
+/* 写字板:信纸钉在木板里 */
+html[data-theme="sdv"] .widget-board{ position:relative; }
+html[data-theme="sdv"] .widget-board::before{
+  content:""; position:absolute; inset:16px 8px;
+  background: url("assets/sdv/paper_letter.png") center / contain no-repeat;
+  pointer-events:none;
+}
+html[data-theme="sdv"] .widget-board__placeholder{ position:relative; z-index:1; }
+/* 纪念日:角落趴一块小蛋糕 */
+html[data-theme="sdv"] .widget-anniversary::after{
+  content:""; position:absolute; right:6px; top:4px; width:40px; height:40px;
+  background: url("assets/sdv/deco_cake.png") center / contain no-repeat;
+  pointer-events:none;
 }
 html[data-theme="sdv"] .widget-anniversary__label{ color: var(--ink-soft); }
 html[data-theme="sdv"] .widget-anniversary__num{ color: var(--rose-deep); }
 html[data-theme="sdv"] .widget-anniversary__unit,
 html[data-theme="sdv"] .widget-anniversary__date{ color: var(--ink-faint); }
 html[data-theme="sdv"] .widget-board__placeholder{ color: var(--ink-faint); }
-html[data-theme="sdv"] .widget-photo__scrim{ background: rgba(44,35,28,.18); }
-html[data-theme="sdv"] .widget-photo__label{
-  color: #fff8ee;
-  text-shadow: 1px 1px 0 rgba(44,35,28,.6);
-}
 
 /* ════════════ 设置 / 个人资料 / 房间页 ════════════ */
 html[data-theme="sdv"] .profile-page,
@@ -393,17 +432,17 @@ html[data-theme="sdv"] .room-back{
   box-shadow: 3px 3px 0 rgba(60,42,32,.20);
 }
 
-/* 设置分组：棕色小方框素材(16px 框 + 收紧 padding,给内容留足宽度防溢出) */
+/* 设置分组：木框素材(自带右下投影;收紧 padding 给内容留宽,防 seg 溢出) */
 html[data-theme="sdv"] .setting-group,
 html[data-theme="sdv"] .settings-card{
   background: none;
-  border: 16px solid transparent;
-  border-image: url("assets/sdv/frame_card.png") 24 fill / 16px / 0 stretch;
+  border: 20px solid transparent;
+  border-image: url("assets/sdv/frame_wood.png") 230 fill / 20px / 0 stretch;
   border-radius: 0;
-  box-shadow: 5px 5px 0 rgba(60,42,32,.16);
+  box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
   image-rendering: pixelated;
-  padding: 12px;
+  padding: 10px;
 }
 /* 4 键场景 seg 在窄内容区不换行必溢出框外:允许收缩 + 允许两字换行 */
 html[data-theme="sdv"] .segmented{ grid-auto-columns: minmax(0, 1fr); }
