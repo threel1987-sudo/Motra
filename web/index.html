@@ -220,6 +220,25 @@
   .topbar, .scroll{ position: relative; z-index: 1; }
   .composer{ position: fixed; z-index: 100; }
 
+  /* ── 空会话态:设计稿的系统提示胶囊(居中 glass pill) ── */
+  #empty{
+    display:flex; justify-content:center;
+    padding: calc(env(safe-area-inset-top) + 18px) var(--side-pad) 18px;
+  }
+  #empty p{
+    max-width: 90%;
+    margin: 0;
+    padding: 8px 16px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--text-soft);
+    text-align: center;
+    background: rgba(255,255,255,.10);
+    border: 1px solid var(--hairline);
+    border-radius: 999px;
+    -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+  }
+
   /* ── Header (floating frosted pill + corner avatar) ── */
   .topbar{
     position: sticky; top: 0; z-index: 10;
@@ -233,7 +252,8 @@
   .topbar > *{ pointer-events: auto; }
   .peerpill{
     position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-    display:flex; flex-direction:column; align-items:center; line-height:1.35;
+    display:flex; flex-direction:column; align-items:center; gap:1px;
+    line-height:1.35;
     background: transparent;
     border: none;
     border-radius: 0;
@@ -241,23 +261,26 @@
     max-width: min(680px, calc(100% - 170px));
     text-align:center;
   }
+  /* 设计稿布局:标题名 + 状态胶囊同一行,连接状态小字在下方 */
+  .peer-title-row{
+    display:flex; align-items:center; justify-content:center; gap:8px;
+    max-width:100%;
+  }
   .peerpill .name{
     font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(18px, 3vw, 28px);
+    font-size: clamp(16px, 3.2vw, 18px);
     font-weight: 600;
     color: var(--text);
     letter-spacing: 0;
     text-shadow: 0 1px 18px rgba(0,0,0,0.3);
-    /* iOS 上 flex item 会被 block 化,overflow:hidden + 1.15 行高会把宋体字上半裁掉;
-       改为不裁字 + 宽松行高,超长名交给 peerpill 的 max-width 兜底 */
     line-height: 1.35;
     max-width:100%; white-space:nowrap; overflow:visible;
   }
   .peerpill .status{
     font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(12px, 1.8vw, 16px);
+    font-size: clamp(11px, 1.7vw, 12.5px);
     color: var(--text-soft);
-    margin-top: 4px;
+    margin-top: 2px;
     letter-spacing: 0;
     line-height: 1.3;
     max-width:100%; white-space:nowrap; overflow:visible;
@@ -1532,13 +1555,21 @@
 
   /* ── 空间状态:聊天页顶部胶囊 + 切换浮层 + 房间列表 ── */
   .presence-capsule{
-    appearance:none; -webkit-appearance:none; border:1px solid var(--card-line);
-    background: var(--card-bg); color: var(--text-soft);
+    appearance:none; -webkit-appearance:none;
+    display:inline-flex; align-items:center; gap:5px;
+    border:1px solid var(--hairline);
+    background: rgba(255,255,255,.10); color: var(--text-soft);
     font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(10.5px, 2.6vw, 12px);
-    border-radius:999px; padding:3px 11px; margin-top:5px;
+    font-size: clamp(10.5px, 2.6vw, 11px);
+    border-radius:999px; padding:3px 9px;
     cursor:pointer; line-height:1.45;
     transition: border-color .2s ease, color .2s ease;
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  }
+  .presence-capsule::before{
+    content:""; width:6px; height:6px; border-radius:50%; flex:none;
+    background: var(--status-dot);
+    box-shadow: 0 0 0 2px rgba(168,216,192,.25);
   }
   .presence-scenarios{ display:grid; gap:8px; }
   .presence-slot{
@@ -1664,7 +1695,8 @@
     .profile-scroll{ gap:22px; }
   }
 
-  /* ── Menu (hub / home page · 从聊天页左箭头进入) ── */
+  /* ── Menu (home · 设计稿 springboard 首页 · 从聊天页左箭头进入) ──
+     只套布局:4 列网格 + 照片/纪念日/写字板 widget + 8 个 app tile;视觉细节后续美化 pass 处理 */
   .menu-panel{
     position: fixed; inset: 0; z-index: 190;
     pointer-events: none;
@@ -1689,134 +1721,98 @@
     flex: 1 1 auto; overflow-y: auto;
     -webkit-overflow-scrolling: touch; overscroll-behavior: contain;
     display: flex; flex-direction: column;
-    padding: calc(env(safe-area-inset-top) + clamp(18px, 4vw, 30px)) clamp(26px, 7vw, 54px) calc(env(safe-area-inset-bottom) + clamp(20px, 5vw, 30px));
+    padding: calc(env(safe-area-inset-top) + clamp(22px, 5vw, 32px)) clamp(20px, 5vw, 26px) calc(env(safe-area-inset-bottom) + clamp(22px, 5vw, 30px));
   }
   .menu-scroll::-webkit-scrollbar{ width:0; height:0; }
 
-  /* header: 玻璃液态日夜 toggle(左) · PRIVATE SPACE(右) */
-  .menu-head{
-    flex: 0 0 auto;
-    display:flex; align-items:flex-start; justify-content:space-between;
-    margin-bottom: clamp(34px, 10vw, 68px);
+  /* iOS 风格 4 列网格:widget 对齐图标网格 */
+  .home-grid{
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-areas:
+      "photo photo photo photo"
+      "anni  anni  app1  app2"
+      "anni  anni  app3  app4"
+      "app5  app6  board board"
+      "app7  app8  board board";
+    gap: clamp(20px, 4.6vw, 32px) clamp(12px, 3.2vw, 18px);
+    width: 100%;
+    max-width: 430px;
+    margin: 0 auto;
   }
-  /* (主题切换已移至设置页 #themeSeg;原菜单页玻璃 toggle 的 CSS 已随标记一并移除) */
-  .menu-private{
-    text-align:right; line-height:1.55;
-    font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(9.5px, 2.5vw, 11px); letter-spacing:.24em;
-    color: var(--text-soft); text-transform:uppercase;
+  .home-grid > *{ min-width: 0; min-height: 0; }
+
+  /* widget 通用(玻璃卡片,沿用现有 token,不上美化) */
+  .widget{
+    position: relative;
+    border-radius: 22px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-line);
+    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    display: flex; flex-direction: column;
   }
-  .menu-private::after{
-    content:""; display:block; margin-left:auto; margin-top:8px;
-    width: clamp(20px, 5.5vw, 26px); height:1px; background: var(--text-faint); opacity:.6;
+  .widget-photo{ grid-area: photo; aspect-ratio: 1.8 / 1; }
+  .widget-photo__bg{
+    position: absolute; inset: 0;
+    background: var(--menu-wall-default) center/cover no-repeat;
+  }
+  .widget-photo__scrim{
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(5,13,20,.18) 0%, rgba(5,13,20,.42) 100%);
+  }
+  .widget-photo__label{
+    position: absolute; left: 14px; bottom: 12px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    text-shadow: 0 1px 4px rgba(0,0,0,.35);
   }
 
-  /* hero: app title · since · days */
-  .menu-hero{ flex: 0 0 auto; margin-bottom: clamp(38px, 11vw, 72px); text-align: center; }
-  .menu-title{
+  /* 纪念日 widget(左上 2×2 · 高度由所跨两行的网格自然决定,不设 aspect-ratio,避免撑破行高) */
+  .widget-anniversary{
+    grid-area: anni;
+    align-items: center; justify-content: center; text-align: center; padding: 12px;
+  }
+  .widget-anniversary__label{ font-size: 11px; color: var(--text-soft); letter-spacing: .02em; }
+  .widget-anniversary__num{
     font-family: var(--font-en), var(--font-cn);
-    font-weight: 700;
-    font-size: clamp(34px, 9vw, 48px);
-    line-height: 1.1;
+    font-size: clamp(38px, 9vw, 46px); font-weight: 700; line-height: 1.15;
     color: var(--accent);
-    margin: 0 0 8px;
-    letter-spacing: .04em;
-    text-shadow: 0 0 40px rgba(168,204,224,.25), 0 0 80px rgba(168,204,224,.10);
   }
-  .menu-tagline{
-    font-family: var(--font-en), var(--font-cn);
-    font-size: 15px; font-weight: 400;
-    letter-spacing: .32em; color: var(--text-soft);
-    margin: 0 0 clamp(16px, 4.4vw, 24px);
-  }
-  .menu-brand-divider{
-    display:flex; align-items:center; justify-content:center;
-    width:100%; margin: 0 0 clamp(16px, 4.4vw, 24px); position:relative;
-  }
-  .menu-brand-divider::before,
-  .menu-brand-divider::after{
-    content:""; flex:1; height:1px;
-    background: linear-gradient(90deg, transparent, rgba(168,204,224,.28), transparent);
-  }
-  .menu-brand-dot{
-    width:6px; height:6px; border-radius:50%; flex:none;
-    background: var(--accent); box-shadow: 0 0 10px rgba(168,204,224,.4);
-    margin: 0 14px;
-  }
-  .menu-since{
-    font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(11px, 2.9vw, 13.5px);
-    letter-spacing:.14em; color: var(--text-soft);
-    margin: 0 0 clamp(8px, 2.2vw, 12px);
-  }
-  .menu-days{
-    display:flex; align-items:baseline; gap: clamp(8px, 2.6vw, 12px);
-    font-family: var(--font-en), var(--font-cn); color: var(--text);
-  }
-  .menu-days .num{ font-size: clamp(30px, 8.4vw, 48px); font-weight:500; line-height:1; letter-spacing:.01em; }
-  .menu-days .lab{ font-size: clamp(12px, 3.1vw, 15px); letter-spacing:.13em; color: var(--text-soft); }
+  .widget-anniversary__unit{ font-size: 12px; color: var(--text-soft); }
+  .widget-anniversary__date{ font-size: 10px; color: var(--text-faint); margin-top: 2px; }
 
-  /* grid · 2×3 glass cards */
-  .menu-list{
-    flex: 0 0 auto;
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: clamp(12px, 3.2vw, 16px);
+  /* 写字板 widget(右下 2×2 · 同样由网格跨行定高) */
+  .widget-board{
+    grid-area: board; padding: 14px;
+    background: var(--card-bg) repeating-linear-gradient(180deg, transparent 0, transparent 22px, rgba(255,255,255,.08) 22px, rgba(255,255,255,.08) 23px);
   }
-  .menu-item{
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap: clamp(8px, 2.2vw, 10px);
-    width:100%; text-align:center;
-    min-height: clamp(128px, 36vw, 150px);
-    padding: clamp(18px, 5vw, 24px) 10px clamp(15px, 4vw, 20px);
-    background: var(--bubble-ai-bg);
-    -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-    border:1px solid var(--hairline); border-radius:20px;
-    box-shadow: var(--soft-shadow);
-    color: var(--text); font: inherit; cursor:pointer;
-    transition: background .2s ease, transform .14s ease, box-shadow .2s ease, border-color .2s ease;
+  .widget-board__placeholder{ font-size: 13px; line-height: 23px; color: var(--text-faint); font-style: italic; }
+
+  /* app tiles(保留 .menu-item 类,JS 的路由按它找) */
+  .app-tile{
+    display: flex; flex-direction: column; align-items: center; gap: 5px;
+    justify-content: flex-start;
+    background: transparent; border: none; padding: 0;
+    -webkit-tap-highlight-color: transparent;
+    cursor: pointer; font: inherit;
+    transition: transform var(--motion-fast) var(--ease-soft);
   }
-  .menu-item:active{ transform: scale(.97); box-shadow: none; }
-  .menu-ic{
-    display:grid; place-items:center;
-    width: clamp(48px, 13vw, 62px); height: clamp(48px, 13vw, 62px);
-    border-radius: 18px; color:#4E93B8; flex:none;
-    background: linear-gradient(160deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.10) 100%);
-    -webkit-backdrop-filter: blur(12px) saturate(1.2); backdrop-filter: blur(12px) saturate(1.2);
-    border:1px solid rgba(255,255,255,.16);
-    box-shadow: 0 2px 10px rgba(0,0,0,.24), inset 0 1px 0 rgba(255,255,255,.20);
-  }
-  .menu-ic svg{ width: clamp(22px, 6vw, 28px); height: clamp(22px, 6vw, 28px); display:block;
-    stroke-width: 2;
-    filter: drop-shadow(0 -1px 0 rgba(255,255,255,.55)) drop-shadow(0 1.5px 1px rgba(5,20,35,.30));
-  }
-  .menu-item[data-menu="chat"]   .menu-ic{ color:#3D8DB6; }
-  .menu-item[data-menu="period"] .menu-ic{ color:#C87A92; }
-  .menu-item[data-menu="fridge"] .menu-ic{ color:#5FB394; }
-  .menu-item[data-menu="memory"] .menu-ic{ color:#C29A59; }
-  .menu-item[data-menu="tides"]  .menu-ic{ color:#3E9CC8; }
-  .menu-item[data-menu="room"]   .menu-ic{ color:#C0856B; }
-  .menu-item[data-menu="cat"]    .menu-ic{ color:#D8A26A; }
-  .menu-name{
-    font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(15px, 4vw, 17px); font-weight:600; line-height:1.2;
+  .app-tile:active{ transform: scale(.93); }
+  .app-icon{
+    width: clamp(54px, 13vw, 60px); height: clamp(54px, 13vw, 60px);
+    border-radius: 16px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-line);
+    -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+    box-shadow: var(--card-shadow);
+    display: inline-flex; align-items: center; justify-content: center;
     color: var(--text);
   }
-  .menu-sub{
-    font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(10px, 2.6vw, 12px); letter-spacing:.06em;
-    text-transform:uppercase; color: var(--text-faint);
-  }
-
-  /* footer */
-  .menu-foot{
-    flex: 1 1 auto;
-    display:flex; align-items:flex-end; justify-content:center;
-    text-align:center;
-    padding-top: clamp(22px, 6vw, 40px);
-    font-family: var(--font-en), var(--font-cn);
-    font-size: clamp(10.5px, 2.7vw, 12.5px); font-style:italic;
-    letter-spacing:.05em; color: var(--text-faint);
+  .app-icon svg{ width: clamp(22px, 5.6vw, 26px); height: clamp(22px, 5.6vw, 26px); display: block; stroke-width: 1.7; }
+  .app-label{
+    font-size: 12px; font-weight: 500; color: var(--text); text-align: center;
+    text-shadow: 0 1px 3px rgba(0,0,0,.35);
   }
 
   /* ── Voice call (speaking overlay · 假按键 / 纯 UI,后端以后接) ── */
@@ -2474,13 +2470,15 @@
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
     <div class="peerpill">
-      <span class="name" id="peerName">Claude</span>
+      <div class="peer-title-row">
+        <h1 class="name" id="peerName">Claude</h1>
+        <button class="presence-capsule" id="presenceCapsule" type="button" title="切换场景" aria-label="切换场景" hidden>🏠 在家</button>
+      </div>
       <span class="status" id="status">connecting…</span>
-      <button class="presence-capsule" id="presenceCapsule" type="button" title="切换场景" aria-label="切换场景" hidden>🏠 在家</button>
     </div>
     <div class="header-actions" aria-label="通话和更多操作">
-      <button class="topbtn sessions" id="sessionBtn" type="button" aria-label="API 窗口" title="API 窗口">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="14" height="14" rx="3"/><path d="M8 3h9a4 4 0 0 1 4 4v9"/></svg>
+      <button class="topbtn sessions" id="sessionBtn" type="button" aria-label="切换聊天" title="切换聊天">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>
       </button>
       <button class="topbtn terminal" id="terminalBtn" type="button" aria-label="终端视图" title="终端视图" style="display:none">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m6 8 4 4-4 4"/><path d="M12 16h6"/></svg>
@@ -2503,7 +2501,6 @@
   </div>
   <main class="scroll" id="scroll">
     <div class="empty" id="empty">
-      <div class="orb"></div>
       <p>这里只有你和Claude。<br>说点什么吧。</p>
     </div>
   </main>
@@ -2677,6 +2674,15 @@
         <input type="file" id="wallInput" accept="image/*" class="hidden">
       </section>
 
+      <!-- 字体大小 -->
+      <section class="settings-card">
+        <div class="settings-label">字体大小 <i class="info-i" title="调节聊天气泡文字的显示大小，只影响这台设备">i</i></div>
+        <div class="param-slider-row">
+          <input id="fontScaleInput" class="param-slider" type="range" min="0.8" max="1.6" step="0.05" value="1" aria-label="字体大小">
+          <span class="param-val" id="fontScaleInputVal">100%</span>
+        </div>
+      </section>
+
       <!-- 自定义样式 -->
       <section class="settings-card">
         <div class="settings-label">自定义样式 CSS <i class="info-i" title="把 CSS 贴进来，实时覆盖默认外观，只存在这台设备。点「清空」即回到默认">i</i></div>
@@ -2686,15 +2692,6 @@
           <button class="config-action danger" id="userCssClearBtn" type="button">清空</button>
         </div>
         <div class="push-hint" id="userCssHint"></div>
-      </section>
-
-      <!-- 字体大小 -->
-      <section class="settings-card">
-        <div class="settings-label">字体大小 <i class="info-i" title="调节聊天气泡文字的显示大小，只影响这台设备">i</i></div>
-        <div class="param-slider-row">
-          <input id="fontScaleInput" class="param-slider" type="range" min="0.8" max="1.6" step="0.05" value="1" aria-label="字体大小">
-          <span class="param-val" id="fontScaleInputVal">100%</span>
-        </div>
       </section>
 
       <!-- 锁屏通知 -->
@@ -2714,7 +2711,7 @@
       </section>
 
       <section class="settings-card" id="configHubView">
-        <div class="settings-label">连接与工具</div>
+        <div class="settings-label">AI 配置</div>
         <div class="config-hub">
           <button class="config-entry" id="openApiConfigBtn" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M3 12h18"/><circle cx="12" cy="12" r="8.5"/></svg>
@@ -2744,6 +2741,13 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5c-1.6 0-3.1-.4-4.3-1.2L3 20l1.2-5.2A8.5 8.5 0 1 1 21 11.5z"/><path d="M7.8 11.5h7.4M11.5 7.8v7.4"/></svg>
             <span class="config-entry-copy"><strong>主动消息</strong><span id="proactiveEntryStatus">按上下文自然发起聊天</span></span>
           </button>
+        </div>
+      </section>
+
+      <!-- 数据与缓存(设计稿独立分组) -->
+      <section class="settings-card" id="dataGroupView">
+        <div class="settings-label">数据与缓存</div>
+        <div class="config-hub">
           <button class="config-entry" id="openDataConfigBtn" type="button">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5"/><path d="M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/></svg>
             <span class="config-entry-copy"><strong>数据管理</strong><span id="dataEntryStatus">导出记录 · 清空窗口 · 清缓存</span></span>
@@ -2945,6 +2949,20 @@
         <div class="push-hint" id="clearCacheHint">清除后页面会自动刷新</div>
       </section>
 
+      <!-- 账号(设计稿分组:退出登录在最后) -->
+      <section class="settings-card" id="accountGroupView">
+        <div class="settings-label">账号</div>
+        <button class="action-row" id="logoutBtn" type="button">
+          <span class="action-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
+          </span>
+          <span class="action-name" style="color:var(--danger)">退出登录</span>
+          <span class="action-chevron">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>
+          </span>
+        </button>
+      </section>
+
       <!-- / 上下文阈值假按键已移除 -->
 
 
@@ -2985,66 +3003,62 @@
   </div>
 </div>
 
-<!-- ── Menu (hub / 主菜单页 · 聊天页左箭头进入) ── -->
+<!-- ── Menu (home / 主菜单 · 设计稿 springboard 首页 · 聊天页左箭头进入) ── -->
 <div class="menu-panel hidden" id="menuPanel" role="dialog" aria-modal="true" aria-label="主菜单">
   <div class="menu-page">
     <div class="menu-scroll">
-      <!-- header -->
-      <div class="menu-head">
+      <div class="home-grid">
+        <div class="widget widget-photo" data-dom-id="widget-photo" aria-label="照片">
+          <div class="widget-photo__bg"></div>
+          <div class="widget-photo__scrim"></div>
+          <span class="widget-photo__label">照片</span>
+        </div>
 
-        <div class="menu-private">PRIVATE<br>SPACE</div>
+        <div class="widget widget-anniversary menu-days" data-dom-id="widget-anniversary" aria-label="纪念日">
+          <div class="widget-anniversary__label">第一次聊天</div>
+          <div class="widget-anniversary__num" id="menuDays">113</div>
+          <div class="widget-anniversary__unit">天</div>
+          <div class="widget-anniversary__date menu-since">since 2026/01/01</div>
+        </div>
+
+        <button class="app-tile menu-item" type="button" data-menu="chat" aria-label="聊天" style="grid-area: app1;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gChat)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gChat" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#8FD4F0"/><stop offset="1" stop-color="#2E7CA8"/></linearGradient></defs><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"/></svg></span>
+          <span class="app-label">聊天</span>
+        </button>
+        <button class="app-tile menu-item" type="button" data-menu="room" aria-label="房间" style="grid-area: app2;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gRoom)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gRoom" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#EEC4A8"/><stop offset="1" stop-color="#B07258"/></linearGradient></defs><path d="M5 21V9a7 7 0 0 1 14 0v12"/><path d="M4 21h16"/><circle cx="15" cy="13" r=".95" fill="url(#gRoom)" stroke="none"/></svg></span>
+          <span class="app-label">房间</span>
+        </button>
+        <button class="app-tile menu-item" type="button" data-menu="period" aria-label="经期" style="grid-area: app3;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gPeriod)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gPeriod" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F2C6D4"/><stop offset="1" stop-color="#B05A78"/></linearGradient></defs><path d="M12 3.5c2.8 3.6 6 7 6 10.3a6 6 0 1 1-12 0c0-3.3 3.2-6.7 6-10.3Z"/><path d="M9.2 14.2a2.9 2.9 0 0 0 2 2.6"/></svg></span>
+          <span class="app-label">经期</span>
+        </button>
+        <button class="app-tile menu-item" type="button" data-menu="cat" aria-label="猫咪" style="grid-area: app4;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gCat)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gCat" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F5D3A4"/><stop offset="1" stop-color="#B97840"/></linearGradient></defs><path d="M5.5 9.2 4.6 4.2l3.9 2.4a8.6 8.6 0 0 1 7 0l3.9-2.4-.9 5A7.6 7.6 0 1 1 5.5 9.2Z"/><circle cx="9.4" cy="13" r=".75" fill="url(#gCat)" stroke="none"/><circle cx="14.6" cy="13" r=".75" fill="url(#gCat)" stroke="none"/><path d="M11 16.2c.6.5 1.4.5 2 0"/></svg></span>
+          <span class="app-label">猫咪</span>
+        </button>
+
+        <button class="app-tile menu-item" type="button" data-menu="fridge" aria-label="冰箱" style="grid-area: app5;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gFridge)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gFridge" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#9FE4C8"/><stop offset="1" stop-color="#3B9A78"/></linearGradient></defs><rect x="4.2" y="3" width="15.6" height="18" rx="2"/><path d="M8.8 3v1.2M15.2 3v1.2M8.8 21v-1.2M15.2 21v-1.2"/><path d="M12 7.5v6M12 13.5l-1.1-1.2M12 13.5l1.1-1.2"/></svg></span>
+          <span class="app-label">冰箱</span>
+        </button>
+        <button class="app-tile menu-item" type="button" data-menu="memory" aria-label="记忆" style="grid-area: app6;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gMemory)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gMemory" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F2DBA6"/><stop offset="1" stop-color="#B0893F"/></linearGradient></defs><path d="M12 3.5c.8 5 3.5 7.7 8.5 8.5-5 .8-7.7 3.5-8.5 8.5-.8-5-3.5-7.7-8.5-8.5 5-.8 7.7-3.5 8.5-8.5Z"/></svg></span>
+          <span class="app-label">记忆</span>
+        </button>
+        <button class="app-tile menu-item" type="button" data-menu="tides" aria-label="潮汐" style="grid-area: app7;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gTides)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gTides" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#93DDF4"/><stop offset="1" stop-color="#2E8CB8"/></linearGradient></defs><path d="M3 8.5c1.8-2.2 3.6-2.2 5.4 0s3.6 2.2 5.4 0 3.6-2.2 5.4 0"/><path d="M3 13c1.8-2.2 3.6-2.2 5.4 0s3.6 2.2 5.4 0 3.6-2.2 5.4 0"/><path d="M3 17.5c1.8-2.2 3.6-2.2 5.4 0s3.6 2.2 5.4 0 3.6-2.2 5.4 0"/></svg></span>
+          <span class="app-label">潮汐</span>
+        </button>
+        <button class="app-tile menu-item" type="button" data-menu="settings" aria-label="设置" style="grid-area: app8;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gSettings)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gSettings" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#C9D6E8"/><stop offset="1" stop-color="#7A93B3"/></linearGradient></defs><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.4 1a7.5 7.5 0 0 0-2.6-1.5L14 2.6h-4l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.4z"/></svg></span>
+          <span class="app-label">设置</span>
+        </button>
+
+        <div class="widget widget-board" data-dom-id="widget-board" aria-label="写字板">
+          <div class="widget-board__placeholder">写点什么…</div>
+        </div>
       </div>
-
-      <!-- hero -->
-      <div class="menu-hero">
-        <h1 class="menu-title">Motra</h1>
-        <p class="menu-tagline">星辰之语</p>
-        <div class="menu-brand-divider"><span class="menu-brand-dot"></span></div>
-        <p class="menu-since">since 2026/01/01</p>
-        <div class="menu-days"><span class="num" id="menuDays">113</span><span class="lab">Days together</span></div>
-      </div>
-
-      <!-- grid -->
-      <nav class="menu-list" aria-label="主菜单">
-        <button class="menu-item" type="button" data-menu="chat">
-          <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gChat)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gChat" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#8FD4F0"/><stop offset="1" stop-color="#2E7CA8"/></linearGradient></defs><path d="M21 11.5a8.5 8.5 0 0 1-12.3 7.6L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5Z"/></svg></span>
-          <span class="menu-name">聊天</span>
-          <span class="menu-sub">Chat</span>
-        </button>
-        <button class="menu-item" type="button" data-menu="period">
-          <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gPeriod)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gPeriod" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F2C6D4"/><stop offset="1" stop-color="#B05A78"/></linearGradient></defs><path d="M12 3.5c2.8 3.6 6 7 6 10.3a6 6 0 1 1-12 0c0-3.3 3.2-6.7 6-10.3Z"/><path d="M9.2 14.2a2.9 2.9 0 0 0 2 2.6"/></svg></span>
-          <span class="menu-name">经期</span>
-          <span class="menu-sub">Cycle</span>
-        </button>
-        <button class="menu-item" type="button" data-menu="fridge">
-          <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gFridge)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gFridge" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#9FE4C8"/><stop offset="1" stop-color="#3B9A78"/></linearGradient></defs><rect x="4.2" y="3" width="15.6" height="18" rx="2"/><path d="M8.8 3v1.2M15.2 3v1.2M8.8 21v-1.2M15.2 21v-1.2"/><path d="M12 7.5v6M12 13.5l-1.1-1.2M12 13.5l1.1-1.2"/></svg></span>
-          <span class="menu-name">冰箱</span>
-          <span class="menu-sub">Fridge</span>
-        </button>
-        <button class="menu-item" type="button" data-menu="memory">
-          <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gMemory)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gMemory" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F2DBA6"/><stop offset="1" stop-color="#B0893F"/></linearGradient></defs><path d="M12 3.5c.8 5 3.5 7.7 8.5 8.5-5 .8-7.7 3.5-8.5 8.5-.8-5-3.5-7.7-8.5-8.5 5-.8 7.7-3.5 8.5-8.5Z"/></svg></span>
-          <span class="menu-name">记忆</span>
-          <span class="menu-sub">Memory</span>
-        </button>
-        <button class="menu-item" type="button" data-menu="tides">
-          <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gTides)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gTides" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#93DDF4"/><stop offset="1" stop-color="#2E8CB8"/></linearGradient></defs><path d="M3 8.5c1.8-2.2 3.6-2.2 5.4 0s3.6 2.2 5.4 0 3.6-2.2 5.4 0"/><path d="M3 13c1.8-2.2 3.6-2.2 5.4 0s3.6 2.2 5.4 0 3.6-2.2 5.4 0"/><path d="M3 17.5c1.8-2.2 3.6-2.2 5.4 0s3.6 2.2 5.4 0 3.6-2.2 5.4 0"/></svg></span>
-          <span class="menu-name">潮汐</span>
-          <span class="menu-sub">Tides</span>
-        </button>
-        <button class="menu-item" type="button" data-menu="room">
-          <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gRoom)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gRoom" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#EEC4A8"/><stop offset="1" stop-color="#B07258"/></linearGradient></defs><path d="M5 21V9a7 7 0 0 1 14 0v12"/><path d="M4 21h16"/><circle cx="15" cy="13" r=".95" fill="url(#gRoom)" stroke="none"/></svg></span>
-          <span class="menu-name">房间</span>
-          <span class="menu-sub">Room</span>
-        </button>
-        <button class="menu-item" type="button" data-menu="cat">
-          <span class="menu-ic"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gCat)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gCat" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F5D3A4"/><stop offset="1" stop-color="#B97840"/></linearGradient></defs><path d="M5.5 9.2 4.6 4.2l3.9 2.4a8.6 8.6 0 0 1 7 0l3.9-2.4-.9 5A7.6 7.6 0 1 1 5.5 9.2Z"/><circle cx="9.4" cy="13" r=".75" fill="url(#gCat)" stroke="none"/><circle cx="14.6" cy="13" r=".75" fill="url(#gCat)" stroke="none"/><path d="M11 16.2c.6.5 1.4.5 2 0"/></svg></span>
-          <span class="menu-name">猫咪</span>
-          <span class="menu-sub">Cat</span>
-        </button>
-      </nav>
-
-      <!-- footer -->
-      <div class="menu-foot">in endless tides, we find each other.</div>
     </div>
   </div>
 </div>
@@ -3235,7 +3249,7 @@ const personaInput = $("#personaInput"), aiNameInput = $("#aiNameInput"), person
 const temperatureInput = $("#temperatureInput"), topPInput = $("#topPInput"), historyNInput = $("#historyNInput"), maxTokensInput = $("#maxTokensInput"), maxTokensAutoCheck = $("#maxTokensAutoInput"), modelParamsSaveBtn = $("#modelParamsSaveBtn"), modelParamsConfigHint = $("#modelParamsConfigHint");
 const injectConfigView = $("#injectConfigView"), openInjectConfigBtn = $("#openInjectConfigBtn"), injectEnabledInput = $("#injectEnabledInput"), injectEntriesList = $("#injectEntriesList"), injectAddBtn = $("#injectAddBtn"), injectSaveBtn = $("#injectSaveBtn"), injectConfigHint = $("#injectConfigHint"), injectEntryStatus = $("#injectEntryStatus");
 const proactiveConfigView = $("#proactiveConfigView"), openProactiveConfigBtn = $("#openProactiveConfigBtn"), proactiveEnabledInput = $("#proactiveEnabledInput"), proactiveIdleInput = $("#proactiveIdleInput"), proactiveCooldownInput = $("#proactiveCooldownInput"), proactiveMaxDayInput = $("#proactiveMaxDayInput"), proactiveQuietEnabledInput = $("#proactiveQuietEnabledInput"), proactiveQuietStartInput = $("#proactiveQuietStartInput"), proactiveQuietEndInput = $("#proactiveQuietEndInput"), proactiveTzSelect = $("#proactiveTzSelect"), proactiveSaveBtn = $("#proactiveSaveBtn"), proactiveConfigHint = $("#proactiveConfigHint"), proactiveEntryStatus = $("#proactiveEntryStatus");
-const dataConfigView = $("#dataConfigView"), openDataConfigBtn = $("#openDataConfigBtn"), dataEntryStatus = $("#dataEntryStatus");
+const dataConfigView = $("#dataConfigView"), openDataConfigBtn = $("#openDataConfigBtn"), dataEntryStatus = $("#dataEntryStatus"), dataGroupView = $("#dataGroupView");
 const memoryConfigView = $("#memoryConfigView"), openMemoryConfigBtn = $("#openMemoryConfigBtn"), memoryUrlInput = $("#memoryUrlInput"), memorySaveBtn = $("#memorySaveBtn"), memoryConfigHint = $("#memoryConfigHint");
 const roomPanel = $("#roomPanel"), roomCloseBtn = $("#roomClose");
 const scenarioSeg = $("#scenarioSeg"), roomList = $("#roomList"), addRoomBtn = $("#addRoomBtn"), homeTemplateBtn = $("#homeTemplateBtn"), roomSaveBtn = $("#roomSaveBtn"), roomConfigHint = $("#roomConfigHint");
@@ -3372,6 +3386,14 @@ function closeProfile(){
   profileCloseTimer = setTimeout(() => profilePanel.classList.add("hidden"), 360);
 }
 
+/* 退出登录(设计稿「账号」分组):清掉本机密钥 → 刷新回登录页 */
+const logoutBtn = $("#logoutBtn");
+if (logoutBtn) logoutBtn.addEventListener("click", () => {
+  try{ localStorage.removeItem(LS_KEY); }catch(e){}
+  try{ if ("serviceWorker" in navigator){ navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())); } }catch(e){}
+  location.reload();
+});
+
 /* ── Room page (独立房间设置) ── */
 let roomCloseTimer = null;
 function openRoomPanel(){
@@ -3449,6 +3471,7 @@ if (menuPanel){
     else if (item.dataset.menu === "period") location.assign("period.html");  // 她的周期卡(来了/走了打个勾,状态按日期推导)
     else if (item.dataset.menu === "memory") location.assign("memory.html");  // 记忆仓库:中间页 → 跳 OB dashboard
     else if (item.dataset.menu === "room"){ closeMenu(); openRoomPanel(); loadRoomConfig(); }  // 主菜单 → 独立的房间设置页（干净：无头像/主题）
+    else if (item.dataset.menu === "settings"){ closeMenu(); openProfile(); }   // 首页 → 设置(个人信息)页
     else showToast("即将开放");                           // placeholder items
   });
 }
@@ -4536,6 +4559,7 @@ let savedLoopConfig = null;
 function setConfigView(view){
   if (!configHubView || !apiConfigView || !mcpConfigView) return;
   configHubView.classList.toggle("hidden", view !== "hub");
+  if (dataGroupView) dataGroupView.classList.toggle("hidden", view !== "hub");
   apiConfigView.classList.toggle("active", view === "api");
   mcpConfigView.classList.toggle("active", view === "mcp");
   if (personaConfigView) personaConfigView.classList.toggle("active", view === "persona");
