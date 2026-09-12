@@ -1,0 +1,467 @@
+/* ════════════════════════════════════════════════════════════════
+   星露谷皮肤 (Cat Valley / Stardew pixel theme)
+   用法：html[data-theme="sdv"] 时生效。素材全部来自 web/assets/sdv/，
+   像素字体来自 web/fonts/（缝合像素 Fusion Pixel, OFL 许可）。
+   框用 border-image 九宫格拉伸，角上的花纹不会被拉变形。
+   ════════════════════════════════════════════════════════════════ */
+
+@font-face{
+  font-family: "FusionPixel";
+  src: url("fonts/fusion-pixel-zh.woff2") format("woff2");
+  font-display: swap;
+  /* 限定生效区间：符号/emoji（✦ ✧ ☕ 🌿 等）不包含在内，
+     让这些字符落到系统 emoji/符号字体，避免像素字体的空字形豆腐块 */
+  unicode-range: U+0000-00FF, U+2000-206F, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF;
+}
+
+html[data-theme="sdv"]{
+
+  /* ── 色板（取自素材：奶油纸 / 深棕 / 藏蓝 / 钢蓝 / 玫瑰粉） ── */
+  --cream:      #f8f3ed;
+  --cream-deep: #efe4d6;
+  --ink:        #3a2b22;
+  --ink-soft:   #6b5346;
+  --ink-faint:  #9a7f6e;
+  --line-brown: #5b3f3f;
+  --navy:       #2c3a4b;
+  --steel:      #53819c;
+  --rose:       #c2587c;
+  --rose-deep:  #9e4462;
+  --gold:       #d4a017;
+
+  --bg: var(--cream);
+  --text: var(--ink);
+  --text-soft: var(--ink-soft);
+  --text-faint: var(--ink-faint);
+  --hairline: rgba(91,63,63,.28);
+
+  --wall-default: url("assets/sdv/bg_title.png");
+  --menu-wall-default: url("assets/sdv/bg_title.png");
+  /* 奶油色薄纱盖在壁纸上，保证可读又透出像素风景 */
+  --scrim: linear-gradient(180deg, rgba(248,243,237,.30) 0%, rgba(248,243,237,.18) 30%, rgba(248,243,237,.22) 68%, rgba(248,243,237,.42) 100%);
+
+  --bubble-ai-fg: var(--ink);
+  --bubble-human-fg: var(--ink);
+  --accent: var(--rose);
+  --send-bg: var(--rose);
+  --tick: var(--steel);
+  --accent-fg: #fff8ee;
+  --think-label: var(--rose);
+  --think-body: var(--ink-soft);
+  --think-flourish: rgba(194,88,124,.45);
+  --field-bg: var(--cream);
+  --field-line: var(--line-brown);
+  --card-bg: var(--cream);
+  --card-line: rgba(91,63,63,.30);
+  --card-shadow: 4px 4px 0 rgba(60,42,32,.16);
+  --seg-track: rgba(91,63,63,.12);
+  --seg-thumb: rgba(194,88,124,.30);
+  --row-press: rgba(91,63,63,.08);
+  --info-ring: rgba(194,88,124,.30);
+  --danger: #b8433a;
+  --shadow: 6px 6px 0 rgba(60,42,32,.18);
+  --soft-shadow: 4px 4px 0 rgba(60,42,32,.12);
+  --bubble-radius: 6px;
+
+  /* 全套像素字体 */
+  --font-en: "FusionPixel", "Noto Sans SC", monospace;
+  --font-cn: "FusionPixel", "Noto Sans SC", monospace;
+}
+
+/* 像素素材全部关闭平滑缩放 */
+html[data-theme="sdv"] .wall,
+html[data-theme="sdv"] .login,
+html[data-theme="sdv"] .menu-page,
+html[data-theme="sdv"] .login .orb,
+html[data-theme="sdv"] .msg-avatar::after,
+html[data-theme="sdv"] .bubble::after{
+  image-rendering: pixelated;
+}
+
+html[data-theme="sdv"] body{
+  font-family: var(--font-cn);
+  letter-spacing: 0;
+}
+
+/* ════════════ 登录页 ════════════ */
+html[data-theme="sdv"] .login::before{
+  background: linear-gradient(180deg, rgba(248,243,237,.05) 0%, rgba(248,243,237,.10) 55%, rgba(44,58,75,.28) 100%);
+}
+html[data-theme="sdv"] .login-card{
+  background: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  border: 22px solid transparent;
+  border-image: url("assets/sdv/frame_card.png") 24 fill / 22px / 0 stretch;
+  border-radius: 0;
+  box-shadow: 8px 8px 0 rgba(44,35,28,.28);
+  padding: 18px 14px 16px;
+}
+html[data-theme="sdv"] .login-brand{ color: var(--rose); letter-spacing: .3em; }
+html[data-theme="sdv"] .login .orb{
+  width: 84px; height: 84px; border-radius: 0;
+  background-image: url("assets/sdv/deco_cat.png");
+  background-size: contain; background-repeat: no-repeat; background-position: center;
+  box-shadow: none;
+  animation: none;
+}
+html[data-theme="sdv"] .login h1{ color: var(--ink); text-shadow: 2px 2px 0 rgba(91,63,63,.18); }
+html[data-theme="sdv"] .login .sub{ color: var(--ink-soft); }
+html[data-theme="sdv"] .login .login-label{ color: var(--ink-soft); }
+html[data-theme="sdv"] .login input{
+  background: none;
+  border: 14px solid transparent;
+  border-image: url("assets/sdv/frame_input.png") 8 12 8 12 fill / 8px 12px / 0 stretch;
+  border-radius: 0;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  padding: 8px 10px;
+  color: var(--ink);
+  font-family: var(--font-cn);
+}
+html[data-theme="sdv"] .login input:focus{
+  border-color: transparent;
+  box-shadow: none;
+  filter: brightness(.97);
+}
+html[data-theme="sdv"] .login button{
+  margin-top: 4px;
+  padding: 12px 16px;
+  background: var(--rose);
+  color: var(--accent-fg);
+  border: 3px solid var(--line-brown);
+  border-radius: 6px;
+  box-shadow: 0 4px 0 var(--line-brown);
+  font-family: var(--font-cn); font-weight: 600; letter-spacing: .12em;
+}
+html[data-theme="sdv"] .login button:active{
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 var(--line-brown);
+}
+html[data-theme="sdv"] .login .err{ color: var(--danger); }
+
+/* ════════════ 聊天页 ════════════ */
+/* 顶栏胶囊：奶油底 + 棕描边 */
+html[data-theme="sdv"] .peerpill{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 rgba(60,42,32,.20);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html[data-theme="sdv"] .peerpill .name{ color: var(--ink); }
+html[data-theme="sdv"] .peerpill .status{ color: var(--ink-faint); }
+html[data-theme="sdv"] .backbtn,
+html[data-theme="sdv"] .topbtn{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 10px;
+  color: var(--ink);
+  box-shadow: 3px 3px 0 rgba(60,42,32,.20);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html[data-theme="sdv"] .topbtn.terminal.active{ color: var(--rose); }
+
+/* 空会话提示 */
+html[data-theme="sdv"] #empty p{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 10px;
+  color: var(--ink-soft);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+
+/* 日期分隔 */
+html[data-theme="sdv"] .day{
+  color: var(--ink-soft);
+  background: rgba(248,243,237,.92);
+  border: 2px solid var(--line-brown);
+  border-radius: 999px;
+  padding: 2px 12px;
+  box-shadow: 2px 2px 0 rgba(60,42,32,.15);
+}
+html[data-theme="sdv"] .new-divider{ color: var(--rose); }
+html[data-theme="sdv"] .new-divider::before,
+html[data-theme="sdv"] .new-divider::after{ background: rgba(194,88,124,.4); }
+
+/* 气泡：奶油底 + 棕描边（九宫格），小尾巴用 ::after */
+html[data-theme="sdv"] .row.ai .bubble,
+html[data-theme="sdv"] .row.human .bubble{
+  background: none;
+  border-radius: 0;
+  box-shadow: 4px 4px 0 rgba(60,42,32,.14);
+  color: var(--ink);
+  border: 8px solid transparent;
+  padding: 6px 10px 7px;
+  image-rendering: pixelated;
+}
+html[data-theme="sdv"] .row.ai .bubble{
+  border-image: url("assets/sdv/bubble_b.png") 6 fill / 6px / 2px stretch;
+}
+html[data-theme="sdv"] .row.human .bubble{
+  border-image: url("assets/sdv/bubble_b_r.png") 6 fill / 6px / 2px stretch;
+}
+html[data-theme="sdv"] .row.tail .bubble::after{
+  content:""; position:absolute; bottom: -12px;
+  width: 18px; height: 14px;
+  background: url("assets/sdv/bubble_tail.png") center / contain no-repeat;
+  image-rendering: pixelated;
+  pointer-events:none;
+}
+html[data-theme="sdv"] .row.ai.tail .bubble::after{ left: 12px; }
+html[data-theme="sdv"] .row.human.tail .bubble::after{ right: 12px; transform: scaleX(-1); }
+html[data-theme="sdv"] .row.ai.tail .bubble,
+html[data-theme="sdv"] .row.human.tail .bubble{ border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
+html[data-theme="sdv"] .bubble .txt code{
+  background: var(--cream-deep);
+  border: 1px solid rgba(91,63,63,.3);
+  border-radius: 4px;
+  color: var(--rose-deep);
+}
+html[data-theme="sdv"] .meta{
+  color: var(--ink-soft);
+  text-shadow: 0 1px 0 rgba(248,243,237,.9), 1px 0 0 rgba(248,243,237,.9), -1px 0 0 rgba(248,243,237,.9);
+}
+html[data-theme="sdv"] .meta .tick{ color: var(--steel); }
+
+/* AI 头像：花朵相框 */
+html[data-theme="sdv"] .msg-avatar{ position: relative; }
+html[data-theme="sdv"] .msg-avatar::after{
+  content:""; position:absolute; inset:-14%;
+  background: url("assets/sdv/avatar_frame.png") center / contain no-repeat;
+  image-rendering: pixelated;
+  pointer-events:none;
+}
+
+/* 思考/工具卡 */
+html[data-theme="sdv"] .meta-card{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 10px;
+  box-shadow: 3px 3px 0 rgba(60,42,32,.14);
+}
+html[data-theme="sdv"] .meta-card-label{ color: var(--ink); }
+html[data-theme="sdv"] .meta-card-hint{ color: var(--ink-faint); }
+html[data-theme="sdv"] .think-caption, html[data-theme="sdv"] .act-label{
+  color: var(--ink);
+  text-shadow: 0 1px 0 rgba(248,243,237,1), 1px 0 0 rgba(248,243,237,1), -1px 0 0 rgba(248,243,237,1), 0 -1px 0 rgba(248,243,237,1);
+}
+html[data-theme="sdv"] .think-state, html[data-theme="sdv"] .act-state{ color: var(--rose); }
+
+/* 底部输入区：长条输入框素材 */
+html[data-theme="sdv"] .composer .field{
+  background: none;
+  border: 20px solid transparent;
+  border-image: url("assets/sdv/frame_input.png") 8 12 8 12 fill / 10px 14px / 4px stretch;
+  border-radius: 0;
+  box-shadow: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  image-rendering: pixelated;
+}
+html[data-theme="sdv"] .composer textarea{
+  color: var(--ink);
+  font-family: var(--font-cn);
+}
+html[data-theme="sdv"] .composer textarea::placeholder{ color: var(--ink-faint); }
+html[data-theme="sdv"] .emojibtn{ color: var(--ink-soft); }
+html[data-theme="sdv"] .floatbtn.send,
+html[data-theme="sdv"] .floatbtn.stop{
+  background: var(--rose);
+  color: var(--accent-fg);
+  border: 3px solid var(--line-brown);
+  border-radius: 10px;
+  box-shadow: 0 3px 0 var(--line-brown);
+}
+html[data-theme="sdv"] .floatbtn.send:active,
+html[data-theme="sdv"] .floatbtn.stop:active{
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--line-brown);
+}
+html[data-theme="sdv"] .newmsg-pill,
+html[data-theme="sdv"] .scroll-jump{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 999px;
+  color: var(--ink);
+  box-shadow: 3px 3px 0 rgba(60,42,32,.20);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+
+/* 会话抽屉 */
+html[data-theme="sdv"] .session-pop{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 12px;
+  box-shadow: 6px 6px 0 rgba(60,42,32,.22);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html[data-theme="sdv"] .session-title{ color: var(--ink-faint); }
+html[data-theme="sdv"] .session-item{ color: var(--ink); border-radius: 8px; }
+html[data-theme="sdv"] .session-item.active{ background: rgba(194,88,124,.14); }
+html[data-theme="sdv"] .session-meta{ color: var(--ink-faint); }
+html[data-theme="sdv"] .session-new{
+  background: var(--rose); color: var(--accent-fg);
+  border: 2px solid var(--line-brown); border-radius: 8px;
+}
+
+/* 长按菜单 / 编辑浮层 */
+html[data-theme="sdv"] .ctx-actions,
+html[data-theme="sdv"] .edit-card{
+  background: var(--cream) !important;
+  border: 3px solid var(--line-brown) !important;
+  border-radius: 12px !important;
+  box-shadow: 6px 6px 0 rgba(60,42,32,.22) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+  color: var(--ink);
+}
+
+/* ════════════ 主页（菜单/springboard） ════════════ */
+html[data-theme="sdv"] .menu-page{
+  background-image: var(--menu-wall-default);
+  background-size: cover; background-position: center;
+  image-rendering: pixelated;
+}
+html[data-theme="sdv"] .menu-page::before{
+  background: linear-gradient(180deg, rgba(248,243,237,.12) 0%, rgba(248,243,237,.06) 40%, rgba(44,58,75,.20) 100%);
+}
+/* 图标瓷砖：奶油底 + 棕描边 + 硬阴影 */
+html[data-theme="sdv"] .app-tile .app-icon{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 12px;
+  box-shadow: 0 4px 0 rgba(60,42,32,.25);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+html[data-theme="sdv"] .app-tile:active .app-icon{
+  transform: translateY(3px);
+  box-shadow: 0 1px 0 rgba(60,42,32,.25);
+}
+html[data-theme="sdv"] .app-tile .app-label{
+  color: var(--ink);
+  background: rgba(248,243,237,.92);
+  border: 2px solid var(--line-brown);
+  border-radius: 999px;
+  padding: 2px 10px;
+  box-shadow: 2px 2px 0 rgba(60,42,32,.18);
+  text-shadow: none;
+}
+/* 小部件：棕色小方框素材 */
+html[data-theme="sdv"] .widget-anniversary,
+html[data-theme="sdv"] .widget-board,
+html[data-theme="sdv"] .widget-photo{
+  border: 16px solid transparent;
+  border-image: url("assets/sdv/frame_card.png") 24 fill / 16px / 0 stretch;
+  border-radius: 0;
+  box-shadow: 5px 5px 0 rgba(44,35,28,.22);
+  background: none;
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  color: var(--ink);
+  image-rendering: pixelated;
+}
+html[data-theme="sdv"] .widget-anniversary__label{ color: var(--ink-soft); }
+html[data-theme="sdv"] .widget-anniversary__num{ color: var(--rose-deep); }
+html[data-theme="sdv"] .widget-anniversary__unit,
+html[data-theme="sdv"] .widget-anniversary__date{ color: var(--ink-faint); }
+html[data-theme="sdv"] .widget-board__placeholder{ color: var(--ink-faint); }
+html[data-theme="sdv"] .widget-photo__scrim{ background: rgba(44,35,28,.18); }
+html[data-theme="sdv"] .widget-photo__label{
+  color: #fff8ee;
+  text-shadow: 1px 1px 0 rgba(44,35,28,.6);
+}
+
+/* ════════════ 设置 / 个人资料 / 房间页 ════════════ */
+html[data-theme="sdv"] .profile-page,
+html[data-theme="sdv"] .room-page{
+  background: var(--cream);
+}
+html[data-theme="sdv"] .profile-page::before,
+html[data-theme="sdv"] .room-page::before{ display: none; }
+html[data-theme="sdv"] .profile-topbar h2,
+html[data-theme="sdv"] .room-topbar h2{ color: var(--ink); }
+html[data-theme="sdv"] .profile-back,
+html[data-theme="sdv"] .room-back{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 10px;
+  color: var(--ink);
+  box-shadow: 3px 3px 0 rgba(60,42,32,.20);
+}
+
+/* 设置分组：棕色小方框素材 */
+html[data-theme="sdv"] .setting-group,
+html[data-theme="sdv"] .settings-card{
+  background: none;
+  border: 18px solid transparent;
+  border-image: url("assets/sdv/frame_card.png") 24 fill / 18px / 0 stretch;
+  border-radius: 0;
+  box-shadow: 5px 5px 0 rgba(60,42,32,.16);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+  image-rendering: pixelated;
+}
+html[data-theme="sdv"] .setting-row + .setting-row{ border-top: 2px solid rgba(91,63,63,.22); }
+html[data-theme="sdv"] .setting-label{ color: var(--ink); }
+html[data-theme="sdv"] .setting-sub{ color: var(--ink-faint); }
+html[data-theme="sdv"] .setting-value{ color: var(--ink-soft); }
+html[data-theme="sdv"] .setting-chevron{ color: var(--ink-faint); }
+html[data-theme="sdv"] .setting-icon{
+  background: rgba(194,88,124,.16);
+  border: 2px solid rgba(91,63,63,.35);
+  border-radius: 8px;
+  color: var(--rose-deep);
+}
+html[data-theme="sdv"] .setting-group-hint{ color: var(--ink-faint); }
+html[data-theme="sdv"] .profile-name-row h3,
+html[data-theme="sdv"] .profile-name-row input{ color: var(--ink); }
+html[data-theme="sdv"] .profile-handle{ color: var(--ink-faint); }
+html[data-theme="sdv"] .profile-bio{ color: var(--ink-soft); }
+html[data-theme="sdv"] .profile-avatar{ position: relative; }
+html[data-theme="sdv"] .profile-avatar::after{
+  content:""; position:absolute; inset:-14%;
+  background: url("assets/sdv/avatar_frame.png") center / contain no-repeat;
+  image-rendering: pixelated;
+  pointer-events:none;
+}
+
+/* 输入框 / 文本域 / 调试框 */
+html[data-theme="sdv"] .config-fields input,
+html[data-theme="sdv"] .config-textarea,
+html[data-theme="sdv"] .debug-output{
+  background: var(--cream);
+  border: 3px solid var(--line-brown);
+  border-radius: 8px;
+  color: var(--ink);
+  font-family: var(--font-cn);
+}
+html[data-theme="sdv"] .config-fields input:focus,
+html[data-theme="sdv"] .config-textarea:focus{
+  border-color: var(--rose);
+  box-shadow: 0 0 0 3px rgba(194,88,124,.22);
+}
+html[data-theme="sdv"] .config-field-label{ color: var(--ink-faint); }
+
+/* 像素按钮（确认/数据管理等） */
+html[data-theme="sdv"] .config-action,
+html[data-theme="sdv"] .clear-btn,
+html[data-theme="sdv"] .session-new,
+html[data-theme="sdv"] .edit-save{
+  background: var(--rose);
+  color: var(--accent-fg);
+  border: 3px solid var(--line-brown);
+  border-radius: 8px;
+  box-shadow: 0 3px 0 var(--line-brown);
+  font-family: var(--font-cn);
+}
+html[data-theme="sdv"] .config-action:active,
+html[data-theme="sdv"] .clear-btn:active{
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 var(--line-brown);
+}
+html[data-theme="sdv"] .config-action.ghost{
+  background: var(--cream);
+  color: var(--ink);
+}
+html[data-theme="sdv"] .setting-row.destructive .setting-label{ color: var(--danger); }
+
+/* 分段开关/滑块等控件配色 */
+html[data-theme="sdv"] .seg{ background: var(--seg-track); border-radius: 10px; }
+html[data-theme="sdv"] .seg-thumb{ background: var(--cream); border: 2px solid var(--line-brown); box-shadow: 2px 2px 0 rgba(60,42,32,.2); }
+html[data-theme="sdv"] input[type="range"]{ accent-color: var(--rose); }
+html[data-theme="sdv"] .switch input:checked + i{ background: var(--rose); }

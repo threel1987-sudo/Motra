@@ -43,7 +43,7 @@
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/600.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/400.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/500.min.css" rel="stylesheet">
-<meta name="theme-color" content="#050D14">
+<meta name="theme-color" content="#2C3A4B">
 <!-- iOS launch mode is manifest-only; legacy Apple fullscreen meta breaks bottom viewport. -->
 
 <meta name="apple-mobile-web-app-title" content="Motra">
@@ -53,12 +53,12 @@
 <script>
   /* Theme: single preset (tide = Motra dark glassmorphism). Persisted in localStorage companion_theme. */
   (function(){
-    var THEMES = ["tide"];
+    var THEMES = ["tide","sdv"];
     try{
       var t = localStorage.getItem("companion_theme");
-      if (THEMES.indexOf(t) < 0) t = "tide";
+      if (THEMES.indexOf(t) < 0) t = "sdv";
       document.documentElement.setAttribute("data-theme", t);
-    }catch(e){ document.documentElement.setAttribute("data-theme", "tide"); }
+    }catch(e){ document.documentElement.setAttribute("data-theme", "sdv"); }
   })();
 </script>
 
@@ -2599,6 +2599,7 @@
   }
 
 </style>
+<link rel="stylesheet" href="sdv-skin.css">
 </head>
 <body>
 
@@ -3394,7 +3395,7 @@ const CONFIG = {
 const AI_NAME = CONFIG.AI_NAME, HUMAN_NAME = CONFIG.HUMAN_NAME, APP_NAME = CONFIG.APP_NAME;
 
 const API_BASE = "/relay";       // same-origin; nginx mounts the relay here (RELAY_PUBLIC_PREFIX)
-const USE_MOCK  = false;           // true = self-contained demo with fake data (no backend needed)
+const USE_MOCK  = true;            // true = self-contained demo with fake data (no backend needed)
 const LS_KEY    = "companion_secret";
 
 /* ── 状态 ── */
@@ -3469,8 +3470,8 @@ let exportFormat = "json";     // "json" | "text"
 let editingMcpIndex = null;
 
 /* ════════ 固定聊天背景 + 本地头像 ════════ */
-const THEMES = ["tide"];
-const WALLS = { tide: "beach.webp" };
+const THEMES = ["tide","sdv"];
+const WALLS = { tide: "beach.webp", sdv: "assets/sdv/bg_title.png" };
 const WALL_CUSTOM_KEY = "companion_wall_custom";
 const WALL_QUALITY_KEY = "companion_wall_quality";
 const USER_CSS_KEY = "companion_user_css";
