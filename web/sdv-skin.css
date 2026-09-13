@@ -365,7 +365,7 @@ html[data-theme="sdv"] .app-tile .app-label{
 html[data-theme="sdv"] .widget-anniversary,
 html[data-theme="sdv"] .widget-board{
   border: 14px solid transparent;
-  border-image: url("assets/sdv/frame_wood.png") 130 fill / 14px / 0 stretch;
+  border-image: url("assets/sdv/frame_wood.png") 128 fill / 14px / 0 stretch;
   border-radius: 0;
   box-shadow: 5px 5px 0 rgba(44,35,28,.22);
   background: none;
@@ -437,7 +437,7 @@ html[data-theme="sdv"] .setting-group,
 html[data-theme="sdv"] .settings-card{
   background: none;
   border: 18px solid transparent;
-  border-image: url("assets/sdv/frame_wood.png") 130 fill / 18px / 0 stretch;
+  border-image: url("assets/sdv/frame_wood.png") 128 fill / 18px / 0 stretch;
   border-radius: 0;
   box-shadow: 4px 4px 0 rgba(60,42,32,.16);
   -webkit-backdrop-filter: none; backdrop-filter: none;
