@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<title>冰箱门 · Fridge Door</title>
+<title>便利贴 · Sticky Notes</title>
 
 <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/400.min.css" rel="stylesheet">
@@ -275,13 +275,13 @@ button{ font:inherit; color:inherit; cursor:pointer; border:none; background:non
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
   </button>
   <span class="grow"></span>
-  <div class="top-label" id="topLabel">FRIDGE<br>DOOR<span class="rule"></span></div>
+  <div class="top-label" id="topLabel">STICKY<br>NOTES<span class="rule"></span></div>
 </div>
 
 <!-- ════════ 主页 ════════ -->
 <div class="wrap" id="mainView">
   <div class="hero">
-    <h1>Fridge Door</h1>
+    <h1>Sticky Notes</h1>
     <div class="sub">someone leaves, the door remembers.</div>
   </div>
 
@@ -319,7 +319,7 @@ button{ font:inherit; color:inherit; cursor:pointer; border:none; background:non
 
 <!-- ════════ token 门 ════════ -->
 <div class="wrap gate hidden" id="gateView">
-  <div class="hero" style="padding-top:40px"><h1>Fridge Door</h1><div class="sub">a private little door</div></div>
+  <div class="hero" style="padding-top:40px"><h1>Sticky Notes</h1><div class="sub">a private little door</div></div>
   <div class="gatebox">
     <p>没读到访问密钥——先在主页登录，或在此粘贴密钥（与 PWA 同一个）。</p>
     <input type="text" id="gateInput" placeholder="访问密钥">
@@ -335,7 +335,7 @@ button{ font:inherit; color:inherit; cursor:pointer; border:none; background:non
 <div class="modal hidden" id="writeModal">
   <div class="sheet" id="writeSheet">
     <button class="sheet-x" id="writeClose" aria-label="关闭">✕</button>
-    <div class="fh">往冰箱门上贴一张</div>
+    <div class="fh">写一张便利贴</div>
     <div class="fsub">a note for the one who comes home</div>
     <div class="memo">
       <textarea id="noteText" maxlength="500" placeholder="牛奶喝完了…

@@ -11,8 +11,8 @@
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/600.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/400.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/500.min.css" rel="stylesheet">
-<link rel="preload" href="beach.webp" as="image">
-<meta name="theme-color" content="#050D14">
+<link rel="preload" href="assets/sdv/bg_title.png" as="image">
+<meta name="theme-color" content="#f8f3ed">
 
 <script>
   /* Motra — dark glassmorphism theme (single preset). */
@@ -22,32 +22,32 @@
 <style>
 /* ───────── Motra · dark glassmorphism (shared with the PWA) ───────── */
 :root{
-  --font-en:"Inter","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
-  --font-cn:"Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-en:"FusionPixel","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-cn:"FusionPixel","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
 
-  --bg:#050D14;
-  --wall:url("beach.webp");
-  --text:#F2F0EE;
-  --text-soft:#B8B8C0;
-  --text-faint:#808088;
-  --accent:#A8CCE0;
-  --accent-deep:#A8CCE0;
-  --accent-fg:#0A1620;
-  --hairline:rgba(255,255,255,.10);
-  --field-bg:rgba(255,255,255,.12);
-  --field-line:rgba(255,255,255,.12);
-  --sheet-bg:rgba(16,26,36,.94);
-  --sheet-line:rgba(255,255,255,.14);
-  --sheet-hi:rgba(255,255,255,.16);
-  --sheet-scrim:rgba(0,0,0,.50);
-  --shadow:0 18px 46px rgba(0,0,0,.28);
-  --soft-shadow:0 14px 34px rgba(0,0,0,.20);
-  --scrim:linear-gradient(180deg,rgba(5,13,20,.55) 0%,rgba(5,13,20,.28) 30%,rgba(5,13,20,.28) 68%,rgba(5,13,20,.55) 100%);
-  --danger:#E08A96;
+  --bg:#f8f3ed;
+  --wall:url("assets/sdv/bg_title.png");
+  --text:#3a2b22;
+  --text-soft:#6b5346;
+  --text-faint:#9a7f6e;
+  --accent:#c2587c;
+  --accent-deep:#c2587c;
+  --accent-fg:#fff8ee;
+  --hairline:rgba(91,63,63,.28);
+  --field-bg:#f8f3ed;
+  --field-line:#5b3f3f;
+  --sheet-bg:#f8f3ed;
+  --sheet-line:#5b3f3f;
+  --sheet-hi:rgba(255,255,255,.5);
+  --sheet-scrim:rgba(60,42,32,.45);
+  --shadow:6px 6px 0 rgba(60,42,32,.18);
+  --soft-shadow:4px 4px 0 rgba(60,42,32,.12);
+  --scrim:linear-gradient(180deg,rgba(248,243,237,.30) 0%,rgba(248,243,237,.18) 30%,rgba(248,243,237,.22) 68%,rgba(248,243,237,.42) 100%);
+  --danger:#b8433a;
   /* 猫咪专用 */
-  --fur-a:#F0C891;
-  --fur-b:#C98D54;
-  --warm:#EFBE8F;
+  --fur-a:#F2C88F;
+  --fur-b:#C4834E;
+  --warm:#A4643A;
 }
 
 *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
@@ -181,6 +181,51 @@ button{ font:inherit; color:inherit; cursor:pointer; border:none; background:non
 @keyframes breathe{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.035); } }
 @keyframes floatz{ 0%,100%{ opacity:.4; transform:translateY(0); } 50%{ opacity:1; transform:translateY(-4px); } }
 @media (prefers-reduced-motion:reduce){ *{ animation:none !important; } }
+
+/* ═══ SDV 像素皮肤覆盖(与主 app / 冰箱 / 经期同族) ═══ */
+@font-face{ font-family:"FusionPixel"; src:url("fonts/fusion-pixel-zh.woff2") format("woff2"); font-display:swap;
+  unicode-range: U+0000-00FF, U+2000-206F, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF; }
+.wall{ image-rendering:pixelated; }
+.bar{ background:linear-gradient(180deg,rgba(248,243,237,.88),rgba(248,243,237,0)); -webkit-backdrop-filter:none; backdrop-filter:none; }
+.bar .icon{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:10px; box-shadow:3px 3px 0 rgba(60,42,32,.20); color:#3a2b22; }
+.bar .icon:active{ background:#efe4d6; }
+.top-label{ color:#9a7f6e; }
+.hero h1{ color:#3a2b22; font-style:normal; text-shadow:2px 2px 0 rgba(91,63,63,.18); }
+.hero .sub{ font-style:normal; }
+.glass{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:14px;
+  box-shadow:4px 4px 0 rgba(60,42,32,.16); -webkit-backdrop-filter:none; backdrop-filter:none; }
+/* 猫卡内的小块块 → 奶油像素卡 */
+.now{ background:#fffaf2; border:2px solid rgba(91,63,63,.30); border-radius:10px; }
+.now .mood{ background:rgba(164,100,58,.14); color:var(--warm); }
+.meter{ background:#fffaf2; border:2px solid rgba(91,63,63,.30); border-radius:10px; }
+.meter .dots{ color:var(--warm); }
+.meter .dots .off{ color:rgba(91,63,63,.20); }
+.chip{ background:#fffaf2; border:2px solid rgba(91,63,63,.30); color:var(--text-soft); }
+.face{ box-shadow:0 4px 0 rgba(60,42,32,.16), inset 0 2px 6px rgba(255,255,255,.35); }
+/* 按钮 */
+.acts button:active{ transform:translateY(2px); }
+.acts button.on{ background:var(--fur-b); color:#fff8ee; border:3px solid #5b3f3f; border-radius:8px;
+  box-shadow:0 3px 0 #5b3f3f; font-weight:600; }
+.acts button.on:active{ transform:translateY(2px); box-shadow:0 1px 0 #5b3f3f; }
+/* 弹层 */
+.sheet{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:14px;
+  box-shadow:6px 6px 0 rgba(60,42,32,.22); -webkit-backdrop-filter:none; backdrop-filter:none; }
+.sheet-x{ color:#6b5346; }
+.sheet-x:active{ background:rgba(91,63,63,.14); }
+.fld input{ background:url("assets/sdv/bar_input.png") center/100% 100% no-repeat; border:none; border-radius:3px;
+  color:#3a2b22; padding:11px 16px; }
+.fld input:focus{ border:none; }
+.sheet .row .send{ background:#c2587c; color:#fff8ee; border:3px solid #5b3f3f; border-radius:8px; box-shadow:0 3px 0 #5b3f3f; }
+.sheet .row .ghost{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:8px; color:#3a2b22; box-shadow:0 3px 0 #5b3f3f; }
+.sheet .row button:active{ transform:translateY(2px); box-shadow:0 1px 0 #5b3f3f; }
+/* gate 门 */
+.gatebox{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:14px;
+  box-shadow:5px 5px 0 rgba(60,42,32,.22); -webkit-backdrop-filter:none; backdrop-filter:none; }
+.gatebox input{ background:url("assets/sdv/bar_input.png") center/100% 100% no-repeat; border:none; border-radius:3px;
+  color:#3a2b22; padding:11px 16px; }
+.gatebox .row .send{ background:#c2587c; color:#fff8ee; border:3px solid #5b3f3f; border-radius:8px; box-shadow:0 3px 0 #5b3f3f; }
+.gatebox .row .ghost{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:8px; color:#3a2b22; box-shadow:0 3px 0 #5b3f3f; }
+.gatebox .row button:active{ transform:translateY(2px); box-shadow:0 1px 0 #5b3f3f; }
 </style>
 </head>
 <body>
