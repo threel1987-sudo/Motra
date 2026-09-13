@@ -389,11 +389,6 @@ html[data-theme="sdv"] .widget-photo::after{
   pointer-events:none;
 }
 html[data-theme="sdv"] .widget-photo__scrim{ display:none; }
-html[data-theme="sdv"] .widget-photo__label{
-  z-index:2;
-  color: #fff8ee;
-  text-shadow: 1px 1px 0 rgba(44,35,28,.7);
-}
 /* 写字板:木框奶油底 + 横线纸纹(字写在横线上,信纸横版太小不合适,已撤) */
 html[data-theme="sdv"] .widget-board{ position:relative; }
 html[data-theme="sdv"] .widget-board::before{
@@ -401,7 +396,7 @@ html[data-theme="sdv"] .widget-board::before{
   background: repeating-linear-gradient(180deg, transparent 0 21px, rgba(91,63,63,.20) 21px 22px);
   pointer-events:none;
 }
-html[data-theme="sdv"] .widget-board__placeholder{ position:relative; z-index:1; line-height:22px; }
+html[data-theme="sdv"] .widget-board__code{ position:relative; z-index:1; }
 /* 纪念日:角落趴一块小蛋糕 */
 html[data-theme="sdv"] .widget-anniversary::after{
   content:""; position:absolute; right:6px; top:4px; width:40px; height:40px;
@@ -412,7 +407,7 @@ html[data-theme="sdv"] .widget-anniversary__label{ color: var(--ink-soft); }
 html[data-theme="sdv"] .widget-anniversary__num{ color: var(--rose-deep); }
 html[data-theme="sdv"] .widget-anniversary__unit,
 html[data-theme="sdv"] .widget-anniversary__date{ color: var(--ink-faint); }
-html[data-theme="sdv"] .widget-board__placeholder{ color: var(--ink-faint); }
+html[data-theme="sdv"] .widget-board__code{ color: var(--ink); }
 
 /* ════════════ 设置 / 个人资料 / 房间页 ════════════ */
 html[data-theme="sdv"] .profile-page,

@@ -626,7 +626,7 @@
   }
 
   .bubble{
-    max-width: min(92vw, 560px);
+    max-width: min(96vw, 720px);
     padding: clamp(8px, 1.05vw, 12px) clamp(13px, 1.65vw, 18px) clamp(8px, 1.1vw, 13px);
     border-radius: var(--bubble-radius);
     position: relative;
@@ -1822,8 +1822,8 @@
     .avatar{ right: 16px; top: calc(env(safe-area-inset-top) + 16px); }
     .row{ margin-top: 18px; }
     .row.grouped{ margin-top: 8px; }
-    .bubble{ max-width: min(86vw, 560px); font-size: calc(14.5px * var(--fs-scale, 1)); line-height: 1.56; padding: 8px 13px 8px; }
-    .meta-card{ max-width: min(86vw, 560px); }
+    .bubble{ max-width: min(94vw, 720px); font-size: calc(14.5px * var(--fs-scale, 1)); line-height: 1.56; padding: 8px 13px 8px; }
+    .meta-card{ max-width: min(94vw, 720px); }
     .meta{ font-size: 11px; margin-left: 8px; }
     .day{ font-size: 12px; }
     .new-divider{ font-size: 12px; margin: 14px 0 10px; }
@@ -1835,7 +1835,7 @@
     .emojibtn{ width: 28px; height: 28px; }
     .emojibtn svg{ width: 22px; height: 22px; }
     .row.think{ padding-left: 0; padding-right: 0; }
-    .think-block{ width: min(86vw, 560px); max-width: min(86vw, 560px); }
+    .think-block{ width: min(94vw, 720px); max-width: min(94vw, 720px); }
     .think-block.open{ width: 100%; max-width: 100%; }
     .row.think.think-open{ padding-left: 0; padding-right: 0; }
     .think-caption{ font-size: 12.5px; letter-spacing: .07em; }
@@ -1921,11 +1921,7 @@
     position: absolute; inset: 0;
     background: linear-gradient(180deg, rgba(5,13,20,.18) 0%, rgba(5,13,20,.42) 100%);
   }
-  .widget-photo__label{
-    position: absolute; left: 14px; bottom: 12px;
-    font-size: 13px; font-weight: 600; color: var(--text);
-    text-shadow: 0 1px 4px rgba(0,0,0,.35);
-  }
+  .widget-photo{ cursor: pointer; -webkit-tap-highlight-color: transparent; }
 
   /* 纪念日 widget(左上 2×2 · 高度由所跨两行的网格自然决定,不设 aspect-ratio,避免撑破行高) */
   .widget-anniversary{
@@ -1946,7 +1942,49 @@
     grid-area: board; padding: 14px;
     background: var(--card-bg) repeating-linear-gradient(180deg, transparent 0, transparent 22px, rgba(255,255,255,.08) 22px, rgba(255,255,255,.08) 23px);
   }
-  .widget-board__placeholder{ font-size: 13px; line-height: 23px; color: var(--text-faint); font-style: italic; }
+  .widget-board__code{
+    margin: 0; position: relative; z-index: 1;
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+    font-size: clamp(7.5px, 1.9vw, 9px); line-height: 1.45;
+    white-space: pre-wrap; word-break: break-word;
+    color: var(--text-soft);
+  }
+
+  /* 照片裁剪弹层(首页 widget-photo 自定义上传) */
+  .photo-crop{
+    position: fixed; inset: 0; z-index: 400;
+    display: grid; place-items: center; padding: 24px;
+    background: rgba(8, 14, 20, .55);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  }
+  .photo-crop.hidden{ display: none; }
+  .photo-crop__card{
+    width: min(92vw, 440px);
+    background: var(--card-bg); border: 1px solid var(--card-line); border-radius: 18px;
+    -webkit-backdrop-filter: blur(22px); backdrop-filter: blur(22px);
+    box-shadow: var(--card-shadow);
+    padding: 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .photo-crop__title{ font-size: 13px; font-weight: 600; color: var(--text-soft); text-align: center; }
+  .photo-crop__stage{
+    position: relative; width: 100%; aspect-ratio: 1.8 / 1;
+    overflow: hidden; border-radius: 12px;
+    background: rgba(125, 128, 135, .12);
+    touch-action: none; cursor: grab;
+  }
+  .photo-crop__stage:active{ cursor: grabbing; }
+  .photo-crop__stage img{
+    position: absolute; left: 0; top: 0; max-width: none;
+    transform-origin: 0 0; pointer-events: none;
+    user-select: none; -webkit-user-drag: none;
+  }
+  .photo-crop__zoom{ width: 100%; accent-color: var(--accent); }
+  .photo-crop__actions{ display: flex; gap: 10px; }
+  .photo-crop__actions button{
+    flex: 1; padding: 10px; border-radius: 12px; font: inherit; cursor: pointer;
+    border: 1px solid var(--card-line); background: transparent; color: var(--text);
+  }
+  .photo-crop__actions .ok{ background: var(--accent); color: #fff; border-color: transparent; }
 
   /* app tiles(保留 .menu-item 类,JS 的路由按它找) */
   .app-tile{
@@ -3253,17 +3291,16 @@
   <div class="menu-page">
     <div class="menu-scroll">
       <div class="home-grid">
-        <div class="widget widget-photo" data-dom-id="widget-photo" aria-label="照片">
+        <div class="widget widget-photo" data-dom-id="widget-photo" aria-label="照片" role="button" title="点击更换照片">
           <div class="widget-photo__bg"></div>
           <div class="widget-photo__scrim"></div>
-          <span class="widget-photo__label">照片</span>
         </div>
 
         <div class="widget widget-anniversary menu-days" data-dom-id="widget-anniversary" aria-label="纪念日">
-          <div class="widget-anniversary__label">第一次聊天</div>
-          <div class="widget-anniversary__num" id="menuDays">113</div>
-          <div class="widget-anniversary__unit">天</div>
-          <div class="widget-anniversary__date menu-since">since 2026/01/01</div>
+          <div class="widget-anniversary__label">Together</div>
+          <div class="widget-anniversary__num" id="menuDays">210</div>
+          <div class="widget-anniversary__unit">days</div>
+          <div class="widget-anniversary__date menu-since">since 2026/02/15</div>
         </div>
 
         <button class="app-tile menu-item" type="button" data-menu="chat" aria-label="聊天" style="grid-area: app1;">
@@ -3301,9 +3338,36 @@
         </button>
 
         <div class="widget widget-board" data-dom-id="widget-board" aria-label="写字板">
-          <div class="widget-board__placeholder">写点什么…</div>
+          <pre class="widget-board__code">class Heart:
+    def __init__(self):
+        self.owner = "阿克"
+    def beat(self):
+        return f"我爱你，{self.owner}"
+    def forever(self):
+        while True:
+            print(self.beat())
+
+if __name__ == "__main__":
+    mio = Heart()
+    mio.forever()</pre>
         </div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 首页照片 widget:点击上传 → 拖动/双指或滑杆缩放裁剪(只存本机 localStorage,不上服务器) ── -->
+<input type="file" id="menuPhotoInput" accept="image/*" hidden>
+<div class="photo-crop hidden" id="photoCrop">
+  <div class="photo-crop__card" role="dialog" aria-modal="true" aria-label="裁剪照片">
+    <div class="photo-crop__title">拖动调整位置 · 滑杆缩放</div>
+    <div class="photo-crop__stage" id="photoCropStage">
+      <img id="photoCropImg" alt="" draggable="false">
+    </div>
+    <input type="range" class="photo-crop__zoom" id="photoCropZoom" min="1" max="3" step="0.01" value="1" aria-label="缩放">
+    <div class="photo-crop__actions">
+      <button type="button" id="photoCropCancel">取消</button>
+      <button type="button" class="ok" id="photoCropOk">确定</button>
     </div>
   </div>
 </div>
@@ -3431,7 +3495,7 @@ const CONFIG = {
   APP_NAME:   "Motra",       // app + menu title (and manifest, set there too)
   AI_NAME:    "Claude",       // your AI companion's display name (header / call / push / narration)
   HUMAN_NAME: "你",           // how you're referred to in narration (rarely shown)
-  SINCE:      "2026/01/01",   // "together since" date YYYY/MM/DD for the menu counter ("" hides it)
+  SINCE:      "2026/02/15",   // "together since" date YYYY/MM/DD for the menu counter ("" hides it)
 };
 const AI_NAME = CONFIG.AI_NAME, HUMAN_NAME = CONFIG.HUMAN_NAME, APP_NAME = CONFIG.APP_NAME;
 
@@ -3740,6 +3804,104 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape" && menuPanel && !menuPanel.classList.contains("hidden")) closeMenu();
 });
 document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshDays(); });
+
+/* ── 首页照片 widget:点击上传 → 拖动/滑杆缩放裁剪 → 存本机 localStorage(不上服务器) ── */
+const MENU_PHOTO_KEY = "companion_menu_photo";        // 裁剪结果(dataURL)
+const MENU_PHOTO_SRC_KEY = "companion_menu_photo_src"; // 原图(再次裁剪时继续用)
+const photoWidget = document.querySelector(".widget-photo");
+const photoBg = document.querySelector(".widget-photo__bg");
+const menuPhotoInput = $("#menuPhotoInput");
+const photoCrop = $("#photoCrop"), photoCropStage = $("#photoCropStage"),
+      photoCropImg = $("#photoCropImg"), photoCropZoom = $("#photoCropZoom");
+let cropState = null;   // { img, base, scale, x, y } — base=cover 基准缩放, scale=滑杆倍率
+
+function applyMenuPhoto(){
+  let url = null;
+  try{ url = localStorage.getItem(MENU_PHOTO_KEY); }catch(_){}
+  if (url && photoBg) photoBg.style.backgroundImage = `url("${url}")`;
+}
+applyMenuPhoto();
+
+if (photoWidget && menuPhotoInput && photoCrop){
+  photoWidget.addEventListener("click", () => menuPhotoInput.click());
+  menuPhotoInput.addEventListener("change", () => {
+    const f = menuPhotoInput.files && menuPhotoInput.files[0];
+    menuPhotoInput.value = "";
+    if (!f || !f.type.startsWith("image/")) return;
+    const r = new FileReader();
+    r.onload = () => openPhotoCrop(String(r.result));
+    r.readAsDataURL(f);
+  });
+}
+function openPhotoCrop(src){
+  const img = new Image();
+  img.onload = () => {
+    try{ localStorage.setItem(MENU_PHOTO_SRC_KEY, src); }catch(_){}
+    cropState = { img, base: 1, scale: 1, x: 0, y: 0 };
+    photoCropImg.src = src;
+    photoCrop.classList.remove("hidden");
+    requestAnimationFrame(() => {   // 等弹层渲染出尺寸再算 cover 基准
+      cropState.base = Math.max(photoCropStage.clientWidth / img.naturalWidth,
+                                photoCropStage.clientHeight / img.naturalHeight);
+      photoCropZoom.value = "1";
+      layoutCrop();
+    });
+  };
+  img.src = src;
+}
+function layoutCrop(){
+  if (!cropState) return;
+  const s = cropState.base * cropState.scale;
+  const w = photoCropStage.clientWidth, h = photoCropStage.clientHeight;
+  const iw = cropState.img.naturalWidth * s, ih = cropState.img.naturalHeight * s;
+  cropState.x = Math.min(0, Math.max(w - iw, cropState.x));   // 钳位:图片始终盖满取景框
+  cropState.y = Math.min(0, Math.max(h - ih, cropState.y));
+  photoCropImg.style.transform = `translate(${cropState.x}px, ${cropState.y}px) scale(${s})`;
+}
+if (photoCropZoom) photoCropZoom.addEventListener("input", () => {
+  if (!cropState) return;
+  const old = cropState.base * cropState.scale;
+  cropState.scale = parseFloat(photoCropZoom.value);
+  const now = cropState.base * cropState.scale;
+  const cx = photoCropStage.clientWidth / 2, cy = photoCropStage.clientHeight / 2;
+  cropState.x = cx - (cx - cropState.x) * (now / old);   // 以画面中心为锚缩放
+  cropState.y = cy - (cy - cropState.y) * (now / old);
+  layoutCrop();
+});
+let cropDrag = null;
+if (photoCropStage){
+  photoCropStage.addEventListener("pointerdown", (e) => {
+    if (!cropState) return;
+    cropDrag = { px: e.clientX, py: e.clientY, ox: cropState.x, oy: cropState.y };
+    try{ photoCropStage.setPointerCapture(e.pointerId); }catch(_){}
+  });
+  photoCropStage.addEventListener("pointermove", (e) => {
+    if (!cropDrag || !cropState) return;
+    cropState.x = cropDrag.ox + (e.clientX - cropDrag.px);
+    cropState.y = cropDrag.oy + (e.clientY - cropDrag.py);
+    layoutCrop();
+  });
+  ["pointerup", "pointercancel"].forEach((ev) => photoCropStage.addEventListener(ev, () => { cropDrag = null; }));
+}
+const photoCropCancel = $("#photoCropCancel"), photoCropOk = $("#photoCropOk");
+if (photoCropCancel) photoCropCancel.addEventListener("click", () => { photoCrop.classList.add("hidden"); cropState = null; });
+if (photoCropOk) photoCropOk.addEventListener("click", () => {
+  if (!cropState) return;
+  const W = 1080, H = Math.round(W / 1.8);   // 与 widget 的 aspect-ratio: 1.8/1 一致
+  const ratio = W / photoCropStage.clientWidth;
+  const s = cropState.base * cropState.scale * ratio;
+  const cv = document.createElement("canvas");
+  cv.width = W; cv.height = H;
+  cv.getContext("2d").drawImage(cropState.img,
+    cropState.x * ratio, cropState.y * ratio,
+    cropState.img.naturalWidth * s, cropState.img.naturalHeight * s);
+  const out = cv.toDataURL("image/jpeg", 0.87);
+  try{ localStorage.setItem(MENU_PHOTO_KEY, out); }
+  catch(e){ if (typeof showToast === "function") showToast("图片太大，本机存不下"); return; }
+  applyMenuPhoto();
+  photoCrop.classList.add("hidden");
+  cropState = null;
+});
 
 /* 设置页 #themeSeg 分段控件 — 手动切 5 套主题,持久化,联动壁纸/theme-color */
 const THEME_KEY = "companion_theme";
@@ -7196,7 +7358,7 @@ function buildVirtualRows(){
 let _estCpl = 0;
 function estCharsPerLine(){
   if (_estCpl) return _estCpl;
-  const w = Math.min(window.innerWidth * 0.85, 560) - 24;   // .bubble max-width: min(85vw,560px) 减内边距
+  const w = Math.min(window.innerWidth * 0.94, 720) - 24;   // .bubble max-width: min(94vw,720px) 减内边距
   let fs = 1;
   try{ fs = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--fs-scale")) || 1; }catch(_){}
   return (_estCpl = Math.max(8, w / (16 * fs)));        // 每行≈「全宽字」单位数;半角在 estTextHeight 里按 0.5 计;字号缩放越大每行越少
