@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" class="boot">
 <head>
 <!-- ════════════════════════════════════════════════════════════════
   区块目录（要修改某功能时按区块名搜索即可定位）：
@@ -1181,6 +1181,8 @@
   /* 已登录预恢复(见 head 里的 authed 脚本):首帧直接显示主界面,不闪登录页 */
   html.authed #login{ display:none !important; }
   html.authed #app{ display:flex !important; }
+  /* boot 闸门:JS 就绪前(login/app 都先藏着),防止 authed 预恢复提前亮出聊天页骨架 → 进入闪聊天页 */
+  html.boot #login, html.boot #app{ display:none !important; }
   .app.kb .composer{ padding-bottom: 8px; }
 
   /* ── Profile page (full-screen settings) ── */
@@ -3396,7 +3398,7 @@ const CONFIG = {
 const AI_NAME = CONFIG.AI_NAME, HUMAN_NAME = CONFIG.HUMAN_NAME, APP_NAME = CONFIG.APP_NAME;
 
 const API_BASE = "/relay";       // same-origin; nginx mounts the relay here (RELAY_PUBLIC_PREFIX)
-const USE_MOCK  = false;           // true = self-contained demo with fake data (no backend needed)
+const USE_MOCK  = true;           // true = self-contained demo with fake data (no backend needed) 【临时:本地视觉验证,验完改回 false】
 const LS_KEY    = "companion_secret";
 
 /* ── 状态 ── */
@@ -3689,8 +3691,10 @@ if (menuPanel){
     else if (item.dataset.menu === "cat") location.assign("cat.html");        // 电子宠物猫卡(数据在 home_state 插件,经 relay 代理)
     else if (item.dataset.menu === "period") location.assign("period.html");  // 她的周期卡(来了/走了打个勾,状态按日期推导)
     else if (item.dataset.menu === "memory") location.assign("memory.html");  // 记忆仓库:中间页 → 跳 OB dashboard
-    else if (item.dataset.menu === "room"){ closeMenu(); openRoomPanel(); loadRoomConfig(); }  // 主菜单 → 独立的房间设置页（干净：无头像/主题）
-    else if (item.dataset.menu === "settings"){ closeMenu(); openProfile(); }   // 首页 → 设置(个人信息)页
+    // 房间/设置:面板直接盖在首页上(菜单保持开着),关闭面板即回首页;
+    // 若先 closeMenu 再开面板,两个动画之间的缝会漏出底下的聊天页(闪屏根因)
+    else if (item.dataset.menu === "room"){ openRoomPanel(); loadRoomConfig(); }  // 主菜单 → 独立的房间设置页（干净：无头像/主题）
+    else if (item.dataset.menu === "settings"){ openProfile(); }   // 首页 → 设置(个人信息)页
     else showToast("即将开放");                           // placeholder items
   });
 }
@@ -8822,6 +8826,7 @@ function handle401(){
 }
 
 function showLogin(msg){
+  document.documentElement.classList.remove("boot");   // JS 已就绪,可以放出行登录页
   appEl.classList.add("hidden");
   loginEl.classList.remove("hidden");
   $("#loginErr").textContent = msg || "";
@@ -8899,6 +8904,7 @@ function startChat(initialMsgs, { connect = true, fromCache = false, landHome = 
   if (connect) startRealtime();
   refreshContextStatus();
   if (landHome) openMenu(true);   // 进入 app 先落在首页(springboard),瞬时到位不闪聊天页;聊天从首页点进来
+  document.documentElement.classList.remove("boot");   // 首页已就位,放行首帧
 }
 
 async function init(){

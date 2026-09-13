@@ -361,13 +361,13 @@ html[data-theme="sdv"] .app-tile .app-label{
   box-shadow: 2px 2px 0 rgba(60,42,32,.18);
   text-shadow: none;
 }
-/* 小部件：木框素材(自带右下投影) */
+/* 小部件：木框素材(已裁掉外围纸边,边框即图内 130px;投影用 CSS 补) */
 html[data-theme="sdv"] .widget-anniversary,
 html[data-theme="sdv"] .widget-board{
   border: 14px solid transparent;
-  border-image: url("assets/sdv/frame_wood.png") 230 fill / 14px / 0 stretch;
+  border-image: url("assets/sdv/frame_wood.png") 130 fill / 14px / 0 stretch;
   border-radius: 0;
-  box-shadow: none;
+  box-shadow: 5px 5px 0 rgba(44,35,28,.22);
   background: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
   color: var(--ink);
@@ -394,14 +394,14 @@ html[data-theme="sdv"] .widget-photo__label{
   color: #fff8ee;
   text-shadow: 1px 1px 0 rgba(44,35,28,.7);
 }
-/* 写字板:信纸钉在木板里 */
+/* 写字板:木框奶油底 + 横线纸纹(字写在横线上,信纸横版太小不合适,已撤) */
 html[data-theme="sdv"] .widget-board{ position:relative; }
 html[data-theme="sdv"] .widget-board::before{
-  content:""; position:absolute; inset:16px 8px;
-  background: url("assets/sdv/paper_letter.png") center / contain no-repeat;
+  content:""; position:absolute; inset:14px;
+  background: repeating-linear-gradient(180deg, transparent 0 21px, rgba(91,63,63,.20) 21px 22px);
   pointer-events:none;
 }
-html[data-theme="sdv"] .widget-board__placeholder{ position:relative; z-index:1; }
+html[data-theme="sdv"] .widget-board__placeholder{ position:relative; z-index:1; line-height:22px; }
 /* 纪念日:角落趴一块小蛋糕 */
 html[data-theme="sdv"] .widget-anniversary::after{
   content:""; position:absolute; right:6px; top:4px; width:40px; height:40px;
@@ -432,14 +432,14 @@ html[data-theme="sdv"] .room-back{
   box-shadow: 3px 3px 0 rgba(60,42,32,.20);
 }
 
-/* 设置分组：木框素材(自带右下投影;收紧 padding 给内容留宽,防 seg 溢出) */
+/* 设置分组：木框素材(已裁外围纸边;收紧 padding 给内容留宽,防 seg 溢出) */
 html[data-theme="sdv"] .setting-group,
 html[data-theme="sdv"] .settings-card{
   background: none;
-  border: 20px solid transparent;
-  border-image: url("assets/sdv/frame_wood.png") 230 fill / 20px / 0 stretch;
+  border: 18px solid transparent;
+  border-image: url("assets/sdv/frame_wood.png") 130 fill / 18px / 0 stretch;
   border-radius: 0;
-  box-shadow: none;
+  box-shadow: 4px 4px 0 rgba(60,42,32,.16);
   -webkit-backdrop-filter: none; backdrop-filter: none;
   image-rendering: pixelated;
   padding: 10px;
