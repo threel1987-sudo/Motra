@@ -118,6 +118,7 @@
      instead of flashing the login screen. handle401() removes the class to re-show login. */
   (function(){
     try{ if (localStorage.getItem("companion_secret")) document.documentElement.classList.add("authed"); }catch(e){}
+    window.__bootT0 = Date.now();   // splash 最短展示计时起点
   })();
 </script>
 
@@ -2601,10 +2602,47 @@
     }
   }
 
+
+  /* ── Splash 进场(boot 期间盖住一切;猫亲亲雪碧 + 像素点) ── */
+  #splash{
+    position: fixed; inset: 0; z-index: 999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+    background-color: var(--bg);
+    background-image: var(--wall-default);
+    background-size: cover; background-position: center;
+    opacity: 0; visibility: hidden;
+    transition: opacity .35s ease, visibility 0s linear .35s;   /* boot 摘掉后淡出再隐藏 */
+    pointer-events: none;
+  }
+  html.boot #splash{ opacity: 1; visibility: visible; transition: none; }
+  #splash::before{ content:""; position:absolute; inset:0; background: var(--scrim); }
+  .splash-cat{
+    position: relative; z-index: 1;
+    width: 176px; height: 152px;
+    background: url("assets/sdv/splash_cats.png") 0 0 / 600% 100% no-repeat;
+    image-rendering: pixelated;
+    animation: catKiss 1.2s steps(5) .05s forwards;   /* 6 帧 5 步,演完停在亲亲帧 */
+  }
+  @keyframes catKiss{ from{ background-position: 0% 0; } to{ background-position: 100% 0; } }
+  .splash-txt{
+    position: relative; z-index: 1;
+    font-family: var(--font-en), var(--font-cn); font-size: 14px; letter-spacing: .12em;
+    color: var(--text); text-shadow: 1px 1px 0 rgba(248,243,237,.85);
+  }
+  .splash-txt::after{ content:""; animation: splashDots 1s steps(4) infinite; }
+  @keyframes splashDots{ 0%{ content:""; } 25%{ content:"·"; } 50%{ content:"··"; } 75%{ content:"···"; } }
+  @media (prefers-reduced-motion: reduce){ .splash-cat{ animation: none; background-position: 100% 0; } .splash-txt::after{ animation: none; content:""; } }
+
 </style>
 <link rel="stylesheet" href="sdv-skin.css">
 </head>
 <body>
+
+<!-- ── Splash 进场(boot 期间可见,JS 就绪后淡出) ── -->
+<div id="splash" aria-hidden="true">
+  <div class="splash-cat"></div>
+  <div class="splash-txt">正在打开信箱</div>
+</div>
 
 <!-- ── Login ── -->
 <div class="login" id="login">
@@ -8825,8 +8863,14 @@ function handle401(){
   showLogin("密钥不对,请重新输入。");
 }
 
+function hideSplash(){
+  /* splash 至少演完猫亲亲(1.25s)再淡出,加载慢则一直待到就绪 */
+  const wait = Math.max(0, 1250 - (Date.now() - (window.__bootT0 || 0)));
+  setTimeout(() => document.documentElement.classList.remove("boot"), wait);
+}
+
 function showLogin(msg){
-  document.documentElement.classList.remove("boot");   // JS 已就绪,可以放出行登录页
+  hideSplash();   // JS 已就绪,splash 淡出后放行登录页
   appEl.classList.add("hidden");
   loginEl.classList.remove("hidden");
   $("#loginErr").textContent = msg || "";
@@ -8904,7 +8948,7 @@ function startChat(initialMsgs, { connect = true, fromCache = false, landHome = 
   if (connect) startRealtime();
   refreshContextStatus();
   if (landHome) openMenu(true);   // 进入 app 先落在首页(springboard),瞬时到位不闪聊天页;聊天从首页点进来
-  document.documentElement.classList.remove("boot");   // 首页已就位,放行首帧
+  hideSplash();   // 首页已就位,splash 淡出
 }
 
 async function init(){
