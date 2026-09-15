@@ -800,11 +800,14 @@
   /* ── thinking ── collapsed follows AI bubble; expanded becomes a quiet reading section ── */
   .row.think{
     justify-content: center;
+    flex-direction: column;
+    align-items: center;
     padding-left: 0;
     padding-right: 0;
     margin-top: clamp(7px, 1.2vw, 12px);
     margin-bottom: clamp(10px, 1.8vw, 18px);
   }
+  .row.think .msg-head{ align-self: flex-start; }   /* 回合头部靠左,思考块本身保持居中 */
   .row.think.think-open{
     justify-content: center;
     padding-left: 0;
@@ -890,6 +893,11 @@
   .think-body[hidden]{ display: none !important; }
   .think-body{
     margin-top: clamp(12px, 2.2vw, 20px);
+    background: var(--bubble-ai-bg);                  /* 展开后垫一层半透明纸底,背景图上也能读清 */
+    -webkit-backdrop-filter: blur(14px);
+    backdrop-filter: blur(14px);
+    border-radius: 18px;
+    padding: clamp(14px, 2.6vw, 22px) clamp(10px, 2.4vw, 20px);
   }
   .think-text{
     width: min(82%, 520px);
@@ -944,6 +952,8 @@
      视觉与 thinking 同一族(--think-* 配色),但更小、更收,贴在头像缝隙里,不抢气泡 ── */
   .row.act{
     justify-content: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
     padding-left: 2px;
     padding-right: clamp(12px, 4vw, 40px);
     margin-top: clamp(4px, 0.9vw, 9px);
@@ -7322,37 +7332,51 @@ function buildVirtualRows(){
   const rows = [];
   let lastDayKey = null;
   let prevBubble = null;
+  let aiTurnHasHead = false;   // 头像+名字+时间每回合只出一次:挂在该回合第一条 AI 行(思考/工具卡/正文,谁先来谁扛)
+  let lastAiTs = NaN;
+  const aiRowHead = (m) => {                       // 回合头部判定;相邻 AI 行时间隔 ≥GROUP_GAP 视为新回合(如主动消息),重新出头
+    const t = tsMs(m);
+    const head = !aiTurnHasHead || (Number.isFinite(t) && Number.isFinite(lastAiTs) && t - lastAiTs >= GROUP_GAP);
+    aiTurnHasHead = true;
+    lastAiTs = t;
+    return head;
+  };
+  const aiTurnEnd = () => { aiTurnHasHead = false; lastAiTs = NaN; };
   sortedMessages().forEach((m) => {
     const k = dayKey(m.ts);
     if (k !== lastDayKey){
       lastDayKey = k;
       rows.push({ type:"day", key:`day:${k}:${m._key}`, text:fmtDay(m.ts) });
       prevBubble = null;
+      aiTurnEnd();
     }
     if (newDividerBeforeKey && m._key === newDividerBeforeKey){
       rows.push({ type:"new", key:`new:${newDividerBeforeKey}` });
       prevBubble = null;
+      aiTurnEnd();
     }
     if (m.kind === "thinking"){
-      rows.push({ type:"thinking", key:`m:${m._key}`, message:m });
+      rows.push({ type:"thinking", key:`m:${m._key}`, message:m, head: aiRowHead(m) });
       prevBubble = null;
       return;
     }
     if (m.kind === "act"){
-      rows.push({ type:"act", key:`m:${m._key}`, message:m });
+      rows.push({ type:"act", key:`m:${m._key}`, message:m, head: aiRowHead(m) });
       prevBubble = null;                            // 像 thinking 一样打断气泡成组
       return;
     }
     if (m.kind === "tool"){
-      rows.push({ type:"tool", key:`m:${m._key}`, message:m });
+      rows.push({ type:"tool", key:`m:${m._key}`, message:m, head: aiRowHead(m) });
       prevBubble = null;                            // 工具叠块独立成行,不与气泡成组
       return;
     }
     const t = tsMs(m);
     const grouped = !!(prevBubble && prevBubble.from === m.from && Number.isFinite(t) && Number.isFinite(prevBubble.ts) && (t - prevBubble.ts < GROUP_GAP));
-    const row = { type:"message", key:`m:${m._key}`, message:m, grouped, tail:true };
+    const head = m.from === "ai" ? aiRowHead(m) : false;
+    const row = { type:"message", key:`m:${m._key}`, message:m, grouped, head, tail:true };
     if (grouped && prevBubble.row) prevBubble.row.tail = false;
     rows.push(row);
+    if (m.from !== "ai") aiTurnEnd();               // 人类消息落槌:下一回合重新出头
     prevBubble = { from:m.from, ts:t, row };
   });
   return rows;
@@ -7455,6 +7479,18 @@ function makeNewDivider(){
   d.textContent = "New Messages";
   return d;
 }
+/* AI 回合头部:头像+名字+时间。每回合只出一次,挂在回合第一条 AI 行上
+   (thinking/工具卡/正文谁先来谁扛),由 buildVirtualRows 的 row.head 决定。 */
+function makeAiHead(m){
+  const remark = (localStorage.getItem(REMARK_KEY) || "").trim();
+  const head = document.createElement("div");
+  head.className = "msg-head";
+  head.innerHTML =
+    `<div class="msg-avatar"></div>` +
+    `<div class="msg-head-text"><div class="msg-name">${escapeHtml(remark || AI_NAME)}</div>` +
+    `<div class="msg-time">${fmtTime(m.ts)}</div></div>`;
+  return head;
+}
 function makeThinking(rowData){
   const m = rowData.message;
   const row = document.createElement("div");
@@ -7486,6 +7522,7 @@ function makeThinking(rowData){
     }
   };
   toggle.addEventListener("click", () => setThinkOpen(!block.classList.contains("open")));
+  if (rowData.head) row.appendChild(makeAiHead(m));
   row.appendChild(block);
   if (openThinkKeys.has(m._key)) setThinkOpen(true, { persist:false });
   return row;
@@ -7549,6 +7586,7 @@ function makeAct(rowData){
     toggle.addEventListener("click", () => setActOpen(detail.hidden));
     if (openActKeys.has(m._key)) setActOpen(true, { persist:false });
   }
+  if (rowData.head) row.appendChild(makeAiHead(m));
   row.appendChild(block);
   return row;
 }
@@ -7622,6 +7660,7 @@ function makeToolMsg(rowData){
   const row = document.createElement("div");
   row.className = "row ai has-meta-card";
   row.dataset.id = m.id; row.dataset.from = "ai"; row.dataset.ts = tsMs(m); row.dataset.messageKey = m._key;
+  if (rowData.head) row.appendChild(makeAiHead(m));
   const tcs = (m.meta && m.meta.api && Array.isArray(m.meta.api.tool_calls)) ? m.meta.api.tool_calls : [];
   if (tcs.length) row.appendChild(makeMetaCard(null, tcs));
   return row;
@@ -7638,18 +7677,9 @@ function makeMessage(rowData){
     row.addEventListener("animationend", () => row.classList.remove(cls), { once:true });
   }
 
-  // AI 消息:每组第一条在整轮内容(思考链/工具卡/气泡)上方放「头像+名字+时间」头部
-  const aiHead = m.from === "ai" && !rowData.grouped;
-  if (aiHead){
-    const remark = (localStorage.getItem(REMARK_KEY) || "").trim();
-    const head = document.createElement("div");
-    head.className = "msg-head";
-    head.innerHTML =
-      `<div class="msg-avatar"></div>` +
-      `<div class="msg-head-text"><div class="msg-name">${escapeHtml(remark || AI_NAME)}</div>` +
-      `<div class="msg-time">${fmtTime(m.ts)}</div></div>`;
-    row.appendChild(head);
-  }
+  // AI 消息:每回合第一条 AI 行在整轮内容(思考链/工具卡/气泡)上方放「头像+名字+时间」头部
+  const aiHead = rowData.head === true;
+  if (aiHead) row.appendChild(makeAiHead(m));
 
   const bubble = document.createElement("div");
   bubble.className = "bubble";
