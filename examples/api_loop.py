@@ -2438,10 +2438,13 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
                     pass
 
     on_tool_call = None
+    tool_cards_pushed = False
     if not dry:
         async def on_tool_call(entry: dict[str, Any]) -> None:
             # 工具叠块即执行即落库:卡片实时上屏(对齐 Kelivo 的体感),
             # 且回合随后被打断/超时时,已执行的动作痕迹也不会被一起吞掉。
+            nonlocal tool_cards_pushed
+            tool_cards_pushed = True
             await relay_out({
                 "type": "tool",
                 "text": "",
@@ -2558,9 +2561,11 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
     # 否则 PWA 会同时渲染两份思考(流式思考行 + 回复的 meta 卡)。
     if out.get("thinking") and not (thinking_stream and thinking_stream.sent):
         meta["thinking"] = out["thinking"]
-    if out.get("tool_calls") and dry:
-        # dry(调试接口)没有实时推送通道,工具记录只能随最终响应带回;正式回合里
-        # 叠块已逐条实时落库,最终回复的 meta 不再重复携带,否则 PWA 会渲染两份。
+    if out.get("tool_calls") and (dry or not tool_cards_pushed):
+        # dry(调试)时没有实时推送通道,工具记录随最终响应带回;正式回合里若叠块已
+        # 逐条实时落库则不重复携带(否则 PWA 渲染两份)。例外:若网关是「服务端代执行
+        # 工具」模式(api_loop 没配 MCP、tool_calls 只从流里路过),on_tool_call 不会
+        # 触发,这时仍由最终 meta 兜底带回,保证换网关后叠块不丢。
         meta["tool_calls"] = out["tool_calls"]
     if dry:
         return {"ok": True, "reply": reply, "api": meta}
