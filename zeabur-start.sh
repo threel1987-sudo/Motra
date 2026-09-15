@@ -30,9 +30,9 @@ if [ "${DRIVES_ENABLED:-1}" != "0" ]; then
     fi
     cd "$DRIVES_DIR"
     [ -d node_modules ] || npm install --omit=dev
-    if [ ! -f drives.config.json ]; then
-      # 首次启动按环境变量生成配置;之后想改直接编辑 /data/Drivesoid/drives.config.json
-      cat > drives.config.json <<EOF
+    # 每次启动都按当前环境变量重写配置:容器里没法方便地改文件,
+    # Zeabur 环境变量就是唯一事实来源;情绪数据在 data/ 里,不受影响。
+    cat > drives.config.json <<EOF
 {
   "persona": { "name": "${DRIVES_PERSONA_NAME:-阿克}" },
   "user": { "name": "${DRIVES_USER_NAME:-你}" },
@@ -46,7 +46,6 @@ if [ "${DRIVES_ENABLED:-1}" != "0" ]; then
   "server": { "port": 24601 }
 }
 EOF
-    fi
     [ -n "${DRIVES_API_KEY:-}" ] || echo "[drivesoid] WARN: DRIVES_API_KEY 未设置,情绪分类器不会工作(去 Zeabur 环境变量里加)" >&2
     while true; do
       npm start || true
