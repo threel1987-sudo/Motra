@@ -1395,6 +1395,21 @@ def normalize_usage(raw: Any) -> dict[str, Any]:
         norm["output_tokens"] = outp
     if total is not None:
         norm["total_tokens"] = total
+    # 缓存命中可视化:Anthropic 系 cache_read/cache_creation_input_tokens、DeepSeek 系
+    # prompt_cache_hit/miss_tokens、OpenAI 系 prompt_tokens_details.cached_tokens。
+    # 带上它们,看自己的日志就能确认前缀缓存有没有命中,不用再去中转站消费页猜。
+    cache_read = num("cache_read_input_tokens", "prompt_cache_hit_tokens")
+    if cache_read is None:
+        details = raw.get("prompt_tokens_details")
+        if isinstance(details, dict):
+            v = details.get("cached_tokens")
+            if isinstance(v, (int, float)) and not isinstance(v, bool):
+                cache_read = int(v)
+    if cache_read:
+        norm["cache_read_tokens"] = cache_read
+    cache_write = num("cache_creation_input_tokens", "prompt_cache_miss_tokens")
+    if cache_write:
+        norm["cache_write_tokens"] = cache_write
     return norm
 
 def normalize_stream_event(ev: dict[str, Any]) -> dict[str, Any]:
