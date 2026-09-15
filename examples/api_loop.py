@@ -1820,6 +1820,7 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
             if debug_stream:
                 _tnames = [str((t.get("function") or {}).get("name") or "") for t in (cur_tools or [])]
                 print(f"[api_loop:debug] POST attempt={attempt_no} tool_count={len(_tnames)} tool_names={_tnames[:30]}")
+            _t_req = time.monotonic()
             async with client.stream(
                 "POST",
                 url,
@@ -1848,6 +1849,7 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                 restart_count = 0
                 finish_count = 0   # 本条流里 finish_reason 出现次数(>1 = 网关一条流里跑了多代)
                 usage_count = 0    # usage 帧出现次数(>1 = 多代各自计费的可能性大)
+                _t_first = None    # 首个 SSE data 帧到达时刻:网关首块延迟(含它的召回+上游 prefill)
                 async for line in resp.aiter_lines():
                     if cancel_ev is not None and cancel_ev.is_set():
                         raise _GenerationCancelled()
@@ -1863,6 +1865,9 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                         ev = json.loads(data_str)
                     except json.JSONDecodeError:
                         continue
+                    if _t_first is None:
+                        _t_first = time.monotonic()
+                        print(f"[timing] gateway_first_chunk={(_t_first-_t_req)*1e3:.0f}ms model={route.get('model')}", file=sys.stderr, flush=True)
                     n = normalize_stream_event(ev)
                     # ── 流内重生检测 ──────────────────────────────────────────
                     # 部分中转网关在生成中途失败后,会在同一条 SSE 流里重新发起一次
@@ -2544,11 +2549,17 @@ async def handle_ingest(text: str, msg_id: int | None, session_id: str, *, dry: 
 
 async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *, dry: bool, attachments: list[dict[str, Any]] | None, stream_id: str, cancel_ev: asyncio.Event | None) -> dict[str, Any]:
     atts = [a for a in (attachments or []) if isinstance(a, dict)]
+    _t0 = time.monotonic()
     if not dry:
         # 先报给情绪引擎再生成:它的「秒回/热聊」时序信号依赖事件先于回复到达
         await asyncio.to_thread(_drives_report_user_msg, text, msg_id, session_id)
+    _t1 = time.monotonic()
     image_parts = await attachment_parts(atts)
     messages = build_messages(text, before_id=msg_id, session_id=session_id, use_context=True, image_parts=image_parts or None)
+    _t2 = time.monotonic()
+    # 分段计时:把「慢」定位到具体一段——情绪上报 / 拼上下文(拉历史+情绪注入) / 等网关首块。
+    # 三行配合 [timing] gateway_first_chunk 一起看,谁在拖后腿一目了然。
+    print(f"[timing] drives_report={(_t1-_t0)*1e3:.0f}ms build_messages={(_t2-_t1)*1e3:.0f}ms", file=sys.stderr, flush=True)
     thinking_stream: _DeltaEmitter | None = None
     if (not dry) and STREAM_OUTPUT:
         thinking_stream = _DeltaEmitter(stream_id, session_id, kind="thinking")
