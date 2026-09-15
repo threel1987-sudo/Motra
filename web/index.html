@@ -2970,6 +2970,11 @@
             <span class="setting-body"><span class="setting-label">主动消息</span><span class="setting-sub" id="proactiveEntryStatus">按上下文自然发起聊天</span></span>
             <input type="checkbox" class="toggle" id="proactiveRowToggle" aria-label="主动消息开关">
           </div>
+          <div class="setting-row" id="drivesToggleRow" role="button" tabindex="0" aria-label="情绪系统开关">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C7 17 3 13.5 3 9.5 3 6.5 5.5 4 8.5 4c1.5 0 2.9.8 3.5 2 .6-1.2 2-2 3.5-2C18.5 4 21 6.5 21 9.5c0 4-4 7.5-9 11.5z"/></svg></span>
+            <span class="setting-body"><span class="setting-label">情绪系统</span><span class="setting-sub" id="drivesEntryStatus">他的情绪随聊天真实流转</span></span>
+            <input type="checkbox" class="toggle" id="drivesRowToggle" aria-label="情绪系统开关">
+          </div>
         </section>
 
         <!-- 账号(设计稿分组:退出登录在最后) -->
@@ -3574,6 +3579,7 @@ const settingsAppearanceRow = $("#settingsAppearanceRow"), settingsFontRow = $("
 const settingsBackupRow = $("#settingsBackupRow"), settingsClearCacheRow = $("#settingsClearCacheRow");
 const accentPicker = $("#accentPicker"), glassSlider = $("#glassSlider"), glassSliderVal = $("#glassSliderVal"), styleSeg = $("#styleSeg");
 const pushToggle = $("#pushToggle"), proactiveRowToggle = $("#proactiveRowToggle");
+const drivesRowToggle = $("#drivesRowToggle"), drivesEntryStatus = $("#drivesEntryStatus"), drivesToggleRow = $("#drivesToggleRow");
 const memoryConfigView = $("#memoryConfigView"), openMemoryConfigBtn = $("#openMemoryConfigBtn"), memoryUrlInput = $("#memoryUrlInput"), memorySaveBtn = $("#memorySaveBtn"), memoryConfigHint = $("#memoryConfigHint");
 const roomPanel = $("#roomPanel"), roomCloseBtn = $("#roomClose");
 const scenarioSeg = $("#scenarioSeg"), roomList = $("#roomList"), addRoomBtn = $("#addRoomBtn"), homeTemplateBtn = $("#homeTemplateBtn"), roomSaveBtn = $("#roomSaveBtn"), roomConfigHint = $("#roomConfigHint");
@@ -4180,6 +4186,31 @@ if (proactiveToggleRow) proactiveToggleRow.addEventListener("click", (e) => {
   if (e.target.closest("#proactiveRowToggle")) return;   // toggle 自己处理开关
   setConfigView("proactive");
   loadProactiveConfig();
+});
+
+/* 情绪系统开关:暂停=冻结,不注入也不上报——你不在的日子,他的心不会流逝 */
+if (drivesRowToggle){
+  drivesRowToggle.addEventListener("change", async () => {
+    const want = drivesRowToggle.checked;
+    if (USE_MOCK || !secret){
+      showToast(USE_MOCK ? "演示模式：开关仅本地显示" : "先登录连接再开关情绪系统");
+      drivesRowToggle.checked = !want;
+      return;
+    }
+    const ok = await saveLoopConfig({ drives_enabled: want }, null);
+    if (!ok){
+      drivesRowToggle.checked = !want;
+      showToast("保存失败，开关已还原");
+      return;
+    }
+    if (savedLoopConfig) savedLoopConfig.drives_enabled = want;
+    if (drivesEntryStatus) drivesEntryStatus.textContent = want ? "他的情绪随聊天真实流转" : "已暂停 · 情绪冻结，独处也不会难过";
+    showToast(want ? "情绪系统已开启" : "情绪系统已暂停，他的心停在此刻");
+  });
+}
+if (drivesToggleRow) drivesToggleRow.addEventListener("click", (e) => {
+  if (e.target.closest("#drivesRowToggle")) return;
+  if (drivesRowToggle) drivesRowToggle.click();
 });
 
 /* 本地预览便捷:仅 localhost 下,带 #preview-menu 直接亮出 hub 菜单(线上域名不生效,安全) */
@@ -5159,6 +5190,11 @@ function updateConfigEntryStatus(){
     const p = savedLoopConfig && savedLoopConfig.proactive;
     proactiveEntryStatus.textContent = p && p.enabled ? `已开启 · 今日已发 ${p.sent_today ?? 0} 条` : "按上下文自然发起聊天";
     if (proactiveRowToggle) proactiveRowToggle.checked = !!(p && p.enabled);
+  }
+  if (drivesEntryStatus && savedLoopConfig && typeof savedLoopConfig.drives_enabled === "boolean") {
+    const on = savedLoopConfig.drives_enabled;
+    drivesEntryStatus.textContent = on ? "他的情绪随聊天真实流转" : "已暂停 · 情绪冻结，独处也不会难过";
+    if (drivesRowToggle) drivesRowToggle.checked = on;
   }
 }
 const MCP_TOOLS_CACHE = {};

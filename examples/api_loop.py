@@ -498,6 +498,15 @@ _DRIVES_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))  #
 _DRIVES_LAST_ACTIVITY = 0.0      # 上次上报事件的时刻
 _DRIVES_SESSION_GAP = 6 * 3600   # 静默超此时长 → 下条消息前先补一发 session-start
 
+
+def drives_enabled() -> bool:
+    """运行时开关:PWA 设置页可暂停情绪系统(暂停=冻结,不注入也不上报,
+    独处的日子不会在情绪引擎里流逝)。配置优先,未设则用 env 默认。"""
+    cfg = load_config()
+    if "drives_enabled" in cfg:
+        return bool(cfg.get("drives_enabled"))
+    return DRIVES_ENABLED
+
 # 让模型读懂 [drives] 块的说明(改编自 Drivesoid 仓库 drives-personas-context.md;
 # 事件上报由本层自动完成,故删去原文中面向 MCP 调用的上报章节)。
 DRIVES_PERSONA_NOTE = """# Drives state
@@ -538,7 +547,7 @@ frustration 1.20  pending 2
 
 def _drives_call(method: str, path: str, body: dict[str, Any] | None = None, timeout: float = 2.0) -> str:
     """同步调 Drivesoid;任何失败(未启动/超时/5xx)返回 "" 并记日志。"""
-    if not DRIVES_ENABLED:
+    if not drives_enabled():
         return ""
     data = json.dumps(body, ensure_ascii=False).encode("utf-8") if body is not None else None
     req = urllib.request.Request(DRIVES_URL + path, data=data, method=method)
@@ -566,7 +575,7 @@ def drives_event(event_type: str, payload: dict[str, Any] | None = None) -> None
     """上报事件给 Drivesoid。msg_user 前若静默超时,先补 session-start 让
     情绪引擎把这段时间的衰减/恢复结算掉(它按真实时间推进状态)。"""
     global _DRIVES_LAST_ACTIVITY
-    if not DRIVES_ENABLED:
+    if not drives_enabled():
         return
     now = time.time()
     if event_type == "msg_user" and _DRIVES_LAST_ACTIVITY and now - _DRIVES_LAST_ACTIVITY > _DRIVES_SESSION_GAP:
@@ -596,6 +605,8 @@ async def _drives_boot_handshake() -> None:
     注意:判定就绪用 /api/drives/status 且要求返回体里真的带 base 状态——
     setup 模式(DRIVES_API_KEY 未配)下 status 也会应答,但没有情绪状态;
     另外 session-start 可能触发首次快照计算,用长一点的超时。"""
+    if not drives_enabled():
+        return
     for _ in range(90):
         status = await asyncio.to_thread(_drives_call, "GET", "/api/drives/status")
         if '"base"' in status:
@@ -1144,6 +1155,7 @@ def public_config() -> dict[str, Any]:
         "top_p": cfg.get("top_p", None),
         "max_tokens": cfg.get("max_tokens", MAX_TOKENS),
         "injections": cfg.get("injections") or {"enabled": False, "entries": []},
+        "drives_enabled": drives_enabled(),
         "presence": presence(),
         "rooms": rooms(),
         "proactive": proactive_public(),
@@ -1203,6 +1215,8 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
                 cfg["max_tokens"] = max(100, min(131072, int(v)))
             except Exception:
                 pass
+    if "drives_enabled" in body:
+        cfg["drives_enabled"] = bool(body.get("drives_enabled"))
     if "injections" in body:
         inj = body.get("injections")
         if isinstance(inj, dict):
@@ -2739,7 +2753,7 @@ async def healthz():
         "relay_db": RELAY_DB,
         "relay_secret_loaded": bool(RELAY_SECRET),
         "proactive_enabled": bool(proactive_cfg().get("enabled")),
-        "drives_enabled": DRIVES_ENABLED,
+        "drives_enabled": drives_enabled(),
         "drives_reachable": bool(await asyncio.to_thread(_drives_call, "GET", "/api/drives/status")),
     }
 
