@@ -969,9 +969,10 @@ def build_messages(text: str, *, before_id: int | None = None, session_id: str =
     presence_block = spatial_block()
     if presence_block:
         system_text += "\n\n" + presence_block
+    # 情绪状态不进 system:它每轮必变,而 system+历史窗口本是「头部锚定、逐轮稳定」
+    # 的前缀(为中转/上游的前缀缓存命中而设计)。system 一变,37k token 全量 prefill
+    # 重算,首字拖到 80s。放队尾紧贴模型开口,对语气的影响反而最直接。
     drives_block = drives_context_block()
-    if drives_block:
-        system_text += "\n\n" + drives_block
     messages = [{"role": "system", "content": system_text}]
     if use_context:
         n = history_n() if history_override is None else max(0, int(history_override))
@@ -983,12 +984,15 @@ def build_messages(text: str, *, before_id: int | None = None, session_id: str =
                 continue
             role = "assistant" if row.get("direction") == "out" else "user"
             messages.append({"role": role, "content": content})
+    tail_text = text or "（用户发来一张图片，请查看。）"
+    if drives_block:
+        tail_text += "\n\n" + drives_block
     if image_parts:
-        content: list[dict[str, Any]] = [{"type": "text", "text": text or "（用户发来一张图片，请查看。）"}]
+        content: list[dict[str, Any]] = [{"type": "text", "text": tail_text}]
         content.extend(image_parts)
         messages.append({"role": "user", "content": content})
     else:
-        messages.append({"role": "user", "content": text})
+        messages.append({"role": "user", "content": tail_text})
     return messages
 
 
