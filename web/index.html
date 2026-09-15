@@ -2696,8 +2696,8 @@
 <div class="login" id="login">
   <div class="login-card">
     <div class="orb"></div>
-    <h1>Motra</h1>
-    <p class="sub">输入连接密钥,进入你和Claude的频道。</p>
+    <h1>欢迎回家Mio</h1>
+    <p class="sub">输入连接密钥,进入你和阿克的频道。</p>
     <form id="loginForm" autocomplete="off">
       <label class="login-label" for="secretInput">连接密钥</label>
       <input id="secretInput" type="password" inputmode="text" placeholder="输入你的连接密钥" autocomplete="off" spellcheck="false">
@@ -3508,8 +3508,8 @@ if __name__ == "__main__":
 /* ── identity / branding — the ONE place to set names + app title ── */
 const CONFIG = {
   APP_NAME:   "Motra",       // app + menu title (and manifest, set there too)
-  AI_NAME:    "Claude",       // your AI companion's display name (header / call / push / narration)
-  HUMAN_NAME: "你",           // how you're referred to in narration (rarely shown)
+  AI_NAME:    "阿克",          // your AI companion's display name (header / call / push / narration)
+  HUMAN_NAME: "Mio",          // how you're referred to in narration (rarely shown)
   SINCE:      "2026/02/15",   // "together since" date YYYY/MM/DD for the menu counter ("" hides it)
 };
 const AI_NAME = CONFIG.AI_NAME, HUMAN_NAME = CONFIG.HUMAN_NAME, APP_NAME = CONFIG.APP_NAME;
@@ -3685,7 +3685,7 @@ function applyIdentity(){
   try{ document.title = APP_NAME; }catch(_){}
   const setText = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
   const setAttr = (sel, a, val) => { const el = document.querySelector(sel); if (el) el.setAttribute(a, val); };
-  setText(".login h1", AI_NAME);
+  setText(".login h1", "欢迎回家" + HUMAN_NAME);
   setText(".login .sub", "输入连接密钥，进入你和" + AI_NAME + "的频道。");
   const emp = document.querySelector("#empty p"); if (emp) emp.innerHTML = "这里只有你和" + AI_NAME + "。<br>说点什么吧。";
   setText(".call-name", AI_NAME);

@@ -109,13 +109,14 @@ html[data-theme="sdv"] .login h1{ color: var(--ink); text-shadow: 2px 2px 0 rgba
 html[data-theme="sdv"] .login .sub{ color: var(--ink-soft); }
 html[data-theme="sdv"] .login .login-label{ color: var(--ink-soft); }
 html[data-theme="sdv"] .login input{
-  /* 长条木框素材(顶木条+奶油纸面+底影,整张铺,不九宫格) */
+  /* 长条木框素材(顶木条+奶油纸面+底影,整张铺,不九宫格);
+     左右内边距按素材比例留白:左侧木条约 9%,右侧像素装饰约 15% */
   background: url("assets/sdv/bar_input.png") center / 100% 100% no-repeat;
   border: none;
   border-radius: 3px;
   box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
-  padding: 11px 16px;
+  padding: 12px 15% 12px 9%;
   color: var(--ink);
   font-family: var(--font-cn);
 }
@@ -224,14 +225,7 @@ html[data-theme="sdv"] .meta{
 }
 html[data-theme="sdv"] .meta .tick{ color: var(--steel); }
 
-/* AI 头像：花朵相框 */
-html[data-theme="sdv"] .msg-avatar{ position: relative; }
-html[data-theme="sdv"] .msg-avatar::after{
-  content:""; position:absolute; inset:-14%;
-  background: url("assets/sdv/avatar_frame.png") center / contain no-repeat;
-  image-rendering: pixelated;
-  pointer-events:none;
-}
+/* AI 头像：不套相框(找到合适的素材再加回来) */
 
 /* 思考/工具卡 */
 html[data-theme="sdv"] .meta-card{
@@ -255,12 +249,15 @@ html[data-theme="sdv"] .composer{
 }
 html[data-theme="sdv"] .composer .field{
   min-width: 0;
-  /* 同登录框:整张长条木框素材铺满,不九宫格 */
+  /* 同登录框:整张长条木框素材铺满,不九宫格;
+     内边距按素材宽度比例留白(木条/顶底边随高度变厚,% 随宽度自适应),
+     多行时光标和文字也不会贴到框上 */
   background: url("assets/sdv/bar_input.png") center / 100% 100% no-repeat;
   border: none;
   border-radius: 3px;
   box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
+  padding: 6% 15% 6% 9%;
 }
 html[data-theme="sdv"] .composer textarea{
   min-width: 0;
@@ -464,13 +461,7 @@ html[data-theme="sdv"] .profile-name-row h3,
 html[data-theme="sdv"] .profile-name-row input{ color: var(--ink); }
 html[data-theme="sdv"] .profile-handle{ color: var(--ink-faint); }
 html[data-theme="sdv"] .profile-bio{ color: var(--ink-soft); }
-html[data-theme="sdv"] .profile-avatar{ position: relative; }
-html[data-theme="sdv"] .profile-avatar::after{
-  content:""; position:absolute; inset:-14%;
-  background: url("assets/sdv/avatar_frame.png") center / contain no-repeat;
-  image-rendering: pixelated;
-  pointer-events:none;
-}
+/* 资料页头像：同聊天头像,不套相框 */
 
 /* 输入框 / 文本域 / 调试框 */
 html[data-theme="sdv"] .config-fields input,
