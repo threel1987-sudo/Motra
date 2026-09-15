@@ -5,6 +5,10 @@ WORKDIR /app
 COPY backend/requirements.txt /app/backend/requirements.txt
 RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
+# Node.js + git:Drivesoid 情绪 sidecar(随 zeabur-start.sh 首次启动时克隆到 /data 并常驻)
+RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm git \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY backend /app/backend
 COPY examples /app/examples
 COPY web /app/web
