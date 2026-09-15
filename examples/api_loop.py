@@ -2162,7 +2162,7 @@ async def _chat_with_retry(route: dict[str, Any], messages: list[dict[str, Any]]
 
 
 # ── 模型调用主入口:多模型 fallback ─────────────────────────────────────────
-async def run_model(messages: list[dict[str, Any]], *, stream_id: str = "", session_id: str = "", emit_stream: bool = False, on_thinking=None, on_restart=None, cancel_ev: asyncio.Event | None = None) -> dict[str, Any]:
+async def run_model(messages: list[dict[str, Any]], *, stream_id: str = "", session_id: str = "", emit_stream: bool = False, on_thinking=None, on_restart=None, on_tool_call=None, cancel_ev: asyncio.Event | None = None) -> dict[str, Any]:
     """模型调用主入口:main_chain 顺次尝试,原生 tools + MCP 单路径。
 
     无工具 → 一次流式调用,正文增量经 sink 打 reply_delta 草稿;
@@ -2181,7 +2181,7 @@ async def run_model(messages: list[dict[str, Any]], *, stream_id: str = "", sess
         tried.append(route.get("model"))
         try:
             if all_tools:
-                return await _tool_loop(route, messages, all_tools, on_thinking=on_thinking, on_restart=on_restart, tried=tried, cancel_ev=cancel_ev, session_id=session_id)
+                return await _tool_loop(route, messages, all_tools, on_thinking=on_thinking, on_restart=on_restart, on_tool_call=on_tool_call, tried=tried, cancel_ev=cancel_ev, session_id=session_id)
             sink = None
             if emit_stream and STREAM_OUTPUT:
 
@@ -2220,8 +2220,11 @@ async def run_model(messages: list[dict[str, Any]], *, stream_id: str = "", sess
     return ret
 
 
-async def _tool_loop(route: dict[str, Any], messages: list[dict[str, Any]], all_tools: list[dict[str, Any]], *, on_thinking=None, on_restart=None, tried: list[str], cancel_ev: asyncio.Event | None = None, session_id: str = "") -> dict[str, Any]:
-    """原生工具循环:模型出 tool_calls → 执行 MCP 工具 → 结果喂回,最多 8 轮。"""
+async def _tool_loop(route: dict[str, Any], messages: list[dict[str, Any]], all_tools: list[dict[str, Any]], *, on_thinking=None, on_restart=None, on_tool_call=None, tried: list[str], cancel_ev: asyncio.Event | None = None, session_id: str = "") -> dict[str, Any]:
+    """原生工具循环:模型出 tool_calls → 执行 MCP 工具 → 结果喂回,最多 8 轮。
+
+    on_tool_call(entry) 可选:每执行完一个工具立刻回调(用于把叠块实时推到
+    PWA,不等收尾正文——工具回合可能数分钟,期间用户不该对着死寂的屏幕)。"""
     msgs = messages[:]
     first_thinking = None
     collected: list[dict[str, Any]] = []
@@ -2269,14 +2272,23 @@ async def _tool_loop(route: dict[str, Any], messages: list[dict[str, Any]], all_
                 content = executed[signature]
                 print(f"[api_loop:tool_loop] duplicate call skipped (reusing first result): {tool_name}")
             else:
+                entry = None
                 try:
                     result = _dedupe_mcp_result(await execute_mcp_tool(tool_name, args))
                     content = json.dumps(result, ensure_ascii=False)
-                    collected.append(_tool_call_entry(tool_name, args, mcp_result_text(result)))
+                    entry = _tool_call_entry(tool_name, args, mcp_result_text(result))
                 except Exception as exc:
                     content = json.dumps({"error": str(exc)}, ensure_ascii=False)
-                    collected.append(_tool_call_entry(tool_name, args, {"error": str(exc)}, status="error"))
+                    entry = _tool_call_entry(tool_name, args, {"error": str(exc)}, status="error")
+                collected.append(entry)
                 executed[signature] = content
+                # 叠块实时上屏:执行完立刻推给 PWA,不等收尾正文。推送失败绝不能
+                # 拖死工具循环——卡片丢了是小事,回合断了是大事。
+                if entry is not None and on_tool_call is not None:
+                    try:
+                        await on_tool_call(entry)
+                    except Exception:
+                        pass
             msgs.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": content})
     if collected:
         out["tool_calls"] = collected
@@ -2425,6 +2437,18 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
                 except Exception:
                     pass
 
+    on_tool_call = None
+    if not dry:
+        async def on_tool_call(entry: dict[str, Any]) -> None:
+            # 工具叠块即执行即落库:卡片实时上屏(对齐 Kelivo 的体感),
+            # 且回合随后被打断/超时时,已执行的动作痕迹也不会被一起吞掉。
+            await relay_out({
+                "type": "tool",
+                "text": "",
+                "api_session": session_id,
+                "api": {"runtime": "api_loop", "tool_calls": [entry], "session": session_id},
+            })
+
     cancelled = False
     try:
         out = await run_model(
@@ -2434,6 +2458,7 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
             emit_stream=not dry,
             on_thinking=_on_thinking,
             on_restart=_on_stream_restart,
+            on_tool_call=on_tool_call,
             cancel_ev=cancel_ev,
         )
     except _GenerationCancelled:
@@ -2480,6 +2505,7 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
                 emit_stream=not dry,
                 on_thinking=_on_thinking,
                 on_restart=_on_stream_restart,
+                on_tool_call=on_tool_call,
                 cancel_ev=cancel_ev,
             )
         except _GenerationCancelled:
@@ -2499,7 +2525,7 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
             last_content = str(fb[-1].get("content") or "") if fb else ""
             fb[-1]["content"] = (last_content + "\n" + note) if last_content else note
         try:
-            fallback = await run_model(fb, stream_id=stream_id, session_id=session_id, emit_stream=False, cancel_ev=cancel_ev)
+            fallback = await run_model(fb, stream_id=stream_id, session_id=session_id, emit_stream=False, on_tool_call=on_tool_call, cancel_ev=cancel_ev)
         except _GenerationCancelled:
             return {"ok": True, "cancelled": True, "api": {"runtime": "api_loop", "session": session_id}}
         except Exception:
@@ -2532,7 +2558,9 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
     # 否则 PWA 会同时渲染两份思考(流式思考行 + 回复的 meta 卡)。
     if out.get("thinking") and not (thinking_stream and thinking_stream.sent):
         meta["thinking"] = out["thinking"]
-    if out.get("tool_calls"):
+    if out.get("tool_calls") and dry:
+        # dry(调试接口)没有实时推送通道,工具记录只能随最终响应带回;正式回合里
+        # 叠块已逐条实时落库,最终回复的 meta 不再重复携带,否则 PWA 会渲染两份。
         meta["tool_calls"] = out["tool_calls"]
     if dry:
         return {"ok": True, "reply": reply, "api": meta}

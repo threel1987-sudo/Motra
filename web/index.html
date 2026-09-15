@@ -7343,6 +7343,11 @@ function buildVirtualRows(){
       prevBubble = null;                            // 像 thinking 一样打断气泡成组
       return;
     }
+    if (m.kind === "tool"){
+      rows.push({ type:"tool", key:`m:${m._key}`, message:m });
+      prevBubble = null;                            // 工具叠块独立成行,不与气泡成组
+      return;
+    }
     const t = tsMs(m);
     const grouped = !!(prevBubble && prevBubble.from === m.from && Number.isFinite(t) && Number.isFinite(prevBubble.ts) && (t - prevBubble.ts < GROUP_GAP));
     const row = { type:"message", key:`m:${m._key}`, message:m, grouped, tail:true };
@@ -7391,6 +7396,7 @@ function estimatedHeight(row){
   if (row.type === "new") return DEFAULT_NEW_HEIGHT;
   if (row.type === "thinking") return DEFAULT_THINK_HEIGHT;
   if (row.type === "act") return DEFAULT_ACT_HEIGHT;
+  if (row.type === "tool") return DEFAULT_THINK_HEIGHT;   // 折叠态叠块≈一行,展开由实测纠偏
   const m = row.message;
   const atts = (m && m.meta && Array.isArray(m.meta.attachments)) ? m.meta.attachments : [];
   let h = (row.grouped ? 8 : 22) + 30;                        // 行间距 + 气泡纵向 padding + meta 行
@@ -7608,6 +7614,18 @@ function makeMetaCard(thinkingBlocks, toolCalls){
 
   return card;
 }
+/* ── 工具叠块消息(kind:"tool")──
+   api_loop 每执行完一个 MCP 工具就落库一条,卡片实时上屏、不等收尾正文;
+   渲染成无气泡的独立 meta 卡,视觉与回复气泡上方的工具卡完全一致。 */
+function makeToolMsg(rowData){
+  const m = rowData.message;
+  const row = document.createElement("div");
+  row.className = "row ai has-meta-card";
+  row.dataset.id = m.id; row.dataset.from = "ai"; row.dataset.ts = tsMs(m); row.dataset.messageKey = m._key;
+  const tcs = (m.meta && m.meta.api && Array.isArray(m.meta.api.tool_calls)) ? m.meta.api.tool_calls : [];
+  if (tcs.length) row.appendChild(makeMetaCard(null, tcs));
+  return row;
+}
 function makeMessage(rowData){
   const m = rowData.message;
   const row = document.createElement("div");
@@ -7691,6 +7709,7 @@ function createVirtualNode(row){
   else if (row.type === "new") el = makeNewDivider(row);
   else if (row.type === "thinking") el = makeThinking(row);
   else if (row.type === "act") el = makeAct(row);
+  else if (row.type === "tool") el = makeToolMsg(row);
   else el = makeMessage(row);
   el.dataset.vkey = row.key;
   return el;
@@ -8192,14 +8211,14 @@ function onMessage(m){
     return;
   }
   seen.add(key);
-  if (stick && m.kind !== "thinking" && m.kind !== "act") freshKeys.add(key);          // 在底部时新消息弹入
-  if (m.from === "ai" && m.kind !== "thinking" && m.kind !== "act"){               // act 是环境信息:不响铃、不在通话里朗读
+  if (stick && m.kind !== "thinking" && m.kind !== "act" && m.kind !== "tool") freshKeys.add(key);          // 在底部时新消息弹入
+  if (m.from === "ai" && m.kind !== "thinking" && m.kind !== "act" && m.kind !== "tool"){               // act/tool 是过程信息:不响铃、不在通话里朗读
     playReceiveSound();
     if (window.VoiceCall && window.VoiceCall.isOpen()) window.VoiceCall.speak(m.text || "");
   }
   setMessage({ ...m, status:"sent" }, { render:false });
   scheduleRender({ stickToBottom: stick });
-  if (!stick && m.from === "ai" && m.kind !== "thinking" && m.kind !== "act") showNewMsgPill();  // user is reading history: don't yank them down, just show "↓ new message" at the bottom
+  if (!stick && m.from === "ai" && m.kind !== "thinking" && m.kind !== "act" && m.kind !== "tool") showNewMsgPill();  // user is reading history: don't yank them down, just show "↓ new message" at the bottom
 }
 
 function backfill(){
