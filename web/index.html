@@ -1593,6 +1593,7 @@
   .edit-banner{ display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--accent); background:rgba(73,142,255,.08); border-radius:10px; padding:8px 10px; font-size:12px; color:var(--text); }
   .edit-banner .config-action{ flex:0 0 auto; padding:4px 10px; }
   .config-action.saved{ background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
+  .api-add-btn{ border-style:dashed; padding:11px; font-size:12.5px; }
   @media (max-width:520px){ .config-hub{ grid-template-columns:1fr; } }
 
   /* segmented control */
@@ -3004,27 +3005,30 @@
       <section class="settings-card config-view" id="apiConfigView">
         <div class="config-view-head"><button class="config-view-back" data-config-back type="button" aria-label="返回连接与工具">‹</button><div class="config-view-title"><strong>AI API</strong><span>管理多个 OpenAI 兼容接口（自动 fallback）</span></div></div>
         <div class="api-list" id="apiList"></div>
-        <div class="edit-banner" id="apiEditBanner" style="display:none;margin-top:4px">
-          <span id="apiEditBannerText">正在编辑</span>
-          <button type="button" class="config-action ghost" id="apiEditCancelBtn">取消编辑</button>
-        </div>
-        <div class="config-fields" id="apiConfigFields" style="margin-top:4px">
-          <input id="apiUrlInput" type="url" placeholder="API 地址，例如 https://api.example.com/v1" autocomplete="url">
-          <input id="apiKeyInput" type="password" placeholder="API Key（留空表示保持原 Key）" autocomplete="off">
-          <div class="config-row">
-            <input id="apiModelInput" type="text" placeholder="模型名称，例如 gpt-4o" autocomplete="off">
-            <button class="config-action ghost" id="apiModelsFetchBtn" type="button">拉取列表</button>
+        <div class="config-actions" id="apiAddRow"><button class="config-action ghost api-add-btn" id="apiAddBtn" type="button">＋ 添加 API 路由</button></div>
+        <div id="apiFormWrap" style="display:none">
+          <div class="edit-banner" id="apiEditBanner" style="margin-top:4px">
+            <span id="apiEditBannerText">正在编辑</span>
+            <button type="button" class="config-action ghost" id="apiEditCancelBtn">取消</button>
           </div>
-          <div class="model-list" id="apiModelDropdown" style="display:none"></div>
-          <div class="config-field-label">自定义 Headers（可选，每行一条 key=value）</div>
-          <textarea id="apiHeadersInput" class="config-textarea" rows="2" placeholder="X-Api-Key=sk-xxx&#10;Authorization=Bearer xxx" autocomplete="off" spellcheck="false"></textarea>
-          <div class="config-field-label">会话头名（可选，只填头名，不要写 =值；每个聊天窗口会自动填入自己的会话 ID）</div>
-          <input id="apiSessionHeaderInput" type="text" placeholder="接 Serein gateway 填 X-Serein-Window-ID" autocomplete="off" spellcheck="false">
+          <div class="config-fields" id="apiConfigFields" style="margin-top:4px">
+            <input id="apiUrlInput" type="url" placeholder="API 地址，例如 https://api.example.com/v1" autocomplete="url">
+            <input id="apiKeyInput" type="password" placeholder="API Key（同地址可留空借用）" autocomplete="off">
+            <div class="config-row">
+              <input id="apiModelInput" type="text" placeholder="模型名称，例如 gpt-4o" autocomplete="off">
+              <button class="config-action ghost" id="apiModelsFetchBtn" type="button">拉取列表</button>
+            </div>
+            <div class="model-list" id="apiModelDropdown" style="display:none"></div>
+            <div class="config-field-label">自定义 Headers（可选，每行一条 key=value）</div>
+            <textarea id="apiHeadersInput" class="config-textarea" rows="2" placeholder="X-Api-Key=sk-xxx&#10;Authorization=Bearer xxx" autocomplete="off" spellcheck="false"></textarea>
+            <div class="config-field-label">会话头名（可选，只填头名，不要写 =值；每个聊天窗口会自动填入自己的会话 ID）</div>
+            <input id="apiSessionHeaderInput" type="text" placeholder="接 Serein gateway 填 X-Serein-Window-ID" autocomplete="off" spellcheck="false">
+          </div>
+          <div class="config-actions"><button class="config-action primary" id="apiSaveBtn" type="button">添加 API 路由</button></div>
+          <div class="push-hint" id="apiConfigHint"></div>
+          <div class="config-actions" style="margin-top:4px"><button class="config-action ghost" id="apiDebugBtn" type="button">测试连接</button></div>
+          <pre class="debug-output" id="apiDebugOutput" style="display:none"></pre>
         </div>
-        <div class="config-actions"><button class="config-action primary" id="apiSaveBtn" type="button">添加 API 路由</button></div>
-        <div class="push-hint" id="apiConfigHint"></div>
-        <div class="config-actions" style="margin-top:4px"><button class="config-action ghost" id="apiDebugBtn" type="button">测试连接</button></div>
-        <pre class="debug-output" id="apiDebugOutput" style="display:none"></pre>
       </section>
 
       <section class="settings-card config-view" id="mcpConfigView">
@@ -3584,7 +3588,7 @@ const statusCopy = $("#statusCopy"), statusSidEl = $("#statusSid"), statusUsedEl
 const sessionBtn = $("#sessionBtn"), sessionPop = $("#sessionPop"), sessionList = $("#sessionList"), sessionNewBtn = $("#sessionNewBtn");
 const terminalBtn = $("#terminalBtn"), terminalPanel = $("#terminalPanel"), terminalBack = $("#terminalBack"), terminalLog = $("#terminalLog"), terminalForm = $("#terminalForm"), terminalInput = $("#terminalInput"), terminalSession = $("#terminalSession");
 const brainHint = $("#brainHint");
-const apiUrlInput = $("#apiUrlInput"), apiKeyInput = $("#apiKeyInput"), apiModelInput = $("#apiModelInput"), apiHeadersInput = $("#apiHeadersInput"), apiSessionHeaderInput = $("#apiSessionHeaderInput"), apiSaveBtn = $("#apiSaveBtn"), apiDebugBtn = $("#apiDebugBtn"), apiDebugOutput = $("#apiDebugOutput"), apiConfigHint = $("#apiConfigHint"), apiModelsFetchBtn = $("#apiModelsFetchBtn"), apiModelDropdown = $("#apiModelDropdown"), apiEditBanner = $("#apiEditBanner"), apiEditBannerText = $("#apiEditBannerText"), apiEditCancelBtn = $("#apiEditCancelBtn");
+const apiUrlInput = $("#apiUrlInput"), apiKeyInput = $("#apiKeyInput"), apiModelInput = $("#apiModelInput"), apiHeadersInput = $("#apiHeadersInput"), apiSessionHeaderInput = $("#apiSessionHeaderInput"), apiSaveBtn = $("#apiSaveBtn"), apiDebugBtn = $("#apiDebugBtn"), apiDebugOutput = $("#apiDebugOutput"), apiConfigHint = $("#apiConfigHint"), apiModelsFetchBtn = $("#apiModelsFetchBtn"), apiModelDropdown = $("#apiModelDropdown"), apiEditBanner = $("#apiEditBanner"), apiEditBannerText = $("#apiEditBannerText"), apiEditCancelBtn = $("#apiEditCancelBtn"), apiFormWrap = $("#apiFormWrap"), apiAddRow = $("#apiAddRow"), apiAddBtn = $("#apiAddBtn");
 const mcpNameInput = $("#mcpNameInput"), mcpUrlInput = $("#mcpUrlInput"), mcpTokenInput = $("#mcpTokenInput"), mcpEnabledInput = $("#mcpEnabledInput"), mcpSaveBtn = $("#mcpSaveBtn"), mcpDebugBtn = $("#mcpDebugBtn"), mcpToolCallBtn = $("#mcpToolCallBtn"), mcpDebugOutput = $("#mcpDebugOutput"), mcpConfigHint = $("#mcpConfigHint");
 const configHubView = $("#configHubView"), apiConfigView = $("#apiConfigView"), mcpConfigView = $("#mcpConfigView"), apiList = $("#apiList"), mcpList = $("#mcpList");
 const openApiConfigBtn = $("#openApiConfigBtn"), openMcpConfigBtn = $("#openMcpConfigBtn"), apiEntryStatus = $("#apiEntryStatus"), mcpEntryStatus = $("#mcpEntryStatus");
@@ -5279,6 +5283,14 @@ function renderApiList(){
     item.appendChild(head);
     apiList.appendChild(item);
   });
+  // 一条路由都没有(全新部署/刚删光)时,直接展开表单引导添加,不留空页面
+  if (!routes.length) {
+    openApiForm();
+    if (editingApiIndex === null) {
+      if (apiEditBannerText) apiEditBannerText.textContent = "添加 API 路由";
+      if (apiSaveBtn) apiSaveBtn.textContent = "添加 API 路由";
+    }
+  }
 }
 function flashApiItem(position){
   const el = apiList && apiList.children[position];
@@ -5287,16 +5299,25 @@ function flashApiItem(position){
   el.scrollIntoView({ behavior:"smooth", block:"nearest" });
   setTimeout(() => el.classList.remove("flash"), 1300);
 }
+// 表单默认收起,页面保持只有卡片的清爽态;添加/编辑时展开,保存/取消后收回
+function openApiForm(){
+  if (apiFormWrap) apiFormWrap.style.display = "";
+  if (apiAddRow) apiAddRow.style.display = "none";
+}
+function closeApiForm(){
+  if (apiFormWrap) apiFormWrap.style.display = "none";
+  if (apiAddRow) apiAddRow.style.display = "";
+}
 function resetApiForm(){
   editingApiIndex = null;
   if (apiUrlInput) apiUrlInput.value = "";
-  if (apiKeyInput) { apiKeyInput.value = ""; apiKeyInput.placeholder = "API Key（同地址已存过 Key 可留空）"; }
+  if (apiKeyInput) { apiKeyInput.value = ""; apiKeyInput.placeholder = "API Key（同地址可留空借用）"; }
   if (apiModelInput) apiModelInput.value = "";
   if (apiHeadersInput) apiHeadersInput.value = "";
   if (apiSessionHeaderInput) apiSessionHeaderInput.value = "";
   if (apiModelDropdown) { apiModelDropdown.style.display = "none"; apiModelDropdown.innerHTML = ""; }
-  if (apiEditBanner) apiEditBanner.style.display = "none";
   if (apiSaveBtn) apiSaveBtn.textContent = "添加 API 路由";
+  closeApiForm();
 }
 function renderMcpList(){
   if (!mcpList) return;
@@ -6127,7 +6148,7 @@ if (apiList) apiList.addEventListener("click", async (e) => {
     if (apiModelDropdown) { apiModelDropdown.style.display = "none"; apiModelDropdown.innerHTML = ""; }
     if (apiSaveBtn) apiSaveBtn.textContent = "保存修改";
     if (apiEditBannerText) apiEditBannerText.textContent = `正在编辑：${route.model || route.url}（${position === 0 ? "主用" : `备用 ${position}`}）`;
-    if (apiEditBanner) apiEditBanner.style.display = "";
+    openApiForm();
     renderApiList();
     if (apiConfigFields) apiConfigFields.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } else if (action === "delete") {
@@ -6142,6 +6163,12 @@ if (apiEditCancelBtn) apiEditCancelBtn.addEventListener("click", () => {
   resetApiForm();
   renderApiList();
   if (apiConfigHint) apiConfigHint.textContent = "";
+});
+if (apiAddBtn) apiAddBtn.addEventListener("click", () => {
+  resetApiForm();
+  if (apiEditBannerText) apiEditBannerText.textContent = "正在添加新路由";
+  openApiForm();
+  if (apiConfigFields) apiConfigFields.scrollIntoView({ behavior: "smooth", block: "nearest" });
 });
 if (apiDebugBtn) apiDebugBtn.addEventListener("click", async () => {
   // 测的就是表单里当前填的这一组 url+model;Key 留空时由后端向已存路由借
