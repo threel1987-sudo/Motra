@@ -1312,6 +1312,12 @@ async def app_debug_chat(request: Request):
     return await loop_json_async("/loop/debug-chat", method="POST", body=await request.json())
 
 
+@app.post("/app/models")
+async def app_models(request: Request):
+    check_auth(request)
+    return await loop_json_async("/loop/models", method="POST", body=await request.json())
+
+
 @app.get("/app/debug-mcp")
 async def app_debug_mcp(request: Request):
     check_auth(request)

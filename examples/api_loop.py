@@ -2924,6 +2924,56 @@ async def loop_debug_mcp():
     return {"ok": any(row.get("ok") for row in rows), "servers": rows}
 
 
+@app.post("/loop/models")
+async def loop_models(request: Request):
+    """拉取网关上可用的模型列表(给前端「拉取列表」下拉用)。
+
+    前端传表单里的 url + key;key 留空(编辑已有路由、Key 未重填)时依次按
+    route_index、同 url 去已存路由里借 key,顺便带上那条路由的自定义 headers。
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    chain = main_chain()
+    url = str(body.get("url") or "").strip().rstrip("/")
+    key = str(body.get("key") or "").strip()
+    borrowed: dict[str, Any] | None = None
+    if not key:
+        try:
+            idx = int(body.get("route_index"))
+        except Exception:
+            idx = -1
+        candidates = ([chain[idx]] if 0 <= idx < len(chain) else []) + [r for r in chain if url and str(r.get("url") or "").rstrip("/") == url]
+        for cand in candidates:
+            if cand.get("key"):
+                borrowed = cand
+                break
+        if borrowed:
+            key = str(borrowed.get("key") or "")
+            if not url:
+                url = str(borrowed.get("url") or "").rstrip("/")
+    if not url or not key:
+        raise HTTPException(status_code=400, detail="该地址没有已保存的 Key,请先在表单里粘贴 API Key")
+    req_headers = {"Authorization": f"Bearer {key}"}
+    for hk, hv in ((borrowed or {}).get("headers") or {}).items():
+        if str(hk) and str(hv):
+            req_headers[str(hk)] = str(hv)
+    try:
+        async with httpx.AsyncClient(timeout=30.0, trust_env=False) as client:
+            resp = await client.get(url + "/models", headers=req_headers)
+    except Exception as exc:
+        return {"ok": False, "status": 0, "models": [], "error": f"{type(exc).__name__}: {exc}"}
+    if resp.status_code >= 400:
+        return {"ok": False, "status": resp.status_code, "models": [], "error": resp.text[:500]}
+    try:
+        data = resp.json()
+        models = sorted({str(m.get("id")).strip() for m in (data.get("data") or []) if isinstance(m, dict) and str(m.get("id") or "").strip()})
+    except Exception:
+        return {"ok": False, "status": resp.status_code, "models": [], "error": "网关返回的不是标准 /models 格式"}
+    return {"ok": bool(models), "status": resp.status_code, "models": models, "error": "" if models else "网关返回了空列表"}
+
+
 @app.post("/loop/ingest")
 async def loop_ingest(request: Request):
     body = await request.json()
