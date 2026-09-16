@@ -383,6 +383,24 @@ def main_chain() -> list[dict[str, str]]:
     return env_routes()
 
 
+def _borrow_route(chain: list[dict[str, Any]], url: str, route_index: Any) -> dict[str, Any] | None:
+    """Key 留空时找一条可借 Key 的已存路由:优先 route_index 指定的那条,其次同 url。
+
+    供 /loop/models、/loop/debug-chat 和 update_config 共用——前端「留空保持原 Key」
+    的所有场景都走这一个入口,行为一致。
+    """
+    url = str(url or "").rstrip("/")
+    try:
+        idx = int(route_index)
+    except Exception:
+        idx = -1
+    candidates = ([chain[idx]] if 0 <= idx < len(chain) else []) + [r for r in chain if url and str(r.get("url") or "").rstrip("/") == url]
+    for cand in candidates:
+        if isinstance(cand, dict) and cand.get("key"):
+            return cand
+    return None
+
+
 def history_n() -> int:
     try:
         return max(0, min(int(load_config().get("history_n", HISTORY_N)), 200))
@@ -1241,6 +1259,16 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
                 continue
             old_idx = int(item.get("index", pos) or 0)
             prev = old[old_idx] if 0 <= old_idx < len(old) else {}
+            # 「设为主用」等重排会让 index 错位:同 index 那行的 url 或 model 和本条
+            # 对不上时(同网关多条路由 url 相同,必须连 model 一起比),按 url+model
+            # 把原行找回来——否则 key/headers/session_header 会继承错行。
+            item_url = str(item.get("url") or "").strip().rstrip("/")
+            item_model = str(item.get("model") or "").strip()
+            if prev and ((item_url and str(prev.get("url") or "").rstrip("/") != item_url) or (item_model and str(prev.get("model") or "").strip() != item_model)):
+                for cand in old:
+                    if str(cand.get("url") or "").rstrip("/") == item_url and str(cand.get("model") or "").strip() == item_model:
+                        prev = cand
+                        break
             entry: dict[str, Any] = {
                 "model": str(item.get("model") or prev.get("model") or "").strip(),
                 "url": str(item.get("url") or prev.get("url") or "").strip().rstrip("/"),
@@ -1258,8 +1286,14 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
                         entry["headers"] = cleaned
             elif prev.get("headers"):
                 entry["headers"] = dict(prev["headers"])
+            # 新增路由 Key 留空:向同 url 的已存路由(或本次提交里已整理好的行)借一把,
+            # 同网关换模型不用再粘一遍 Key;无处可借才拒绝。
+            if entry["model"] and entry["url"] and not entry["key"]:
+                donor = _borrow_route(list(old) + new_chain, entry["url"], None)
+                if donor:
+                    entry["key"] = str(donor.get("key") or "")
             if not (entry["model"] and entry["url"] and entry["key"]):
-                raise HTTPException(status_code=400, detail=f"row {pos + 1}: model/url/key required")
+                raise HTTPException(status_code=400, detail=f"第 {pos + 1} 条路由缺少 model/url/key:新路由请至少粘贴一次 API Key")
             new_chain.append(entry)
         if new_chain:
             cfg["main_chain"] = new_chain
@@ -2844,13 +2878,29 @@ async def loop_debug_chat(request: Request):
     except Exception:
         pass
     chain = main_chain()
-    try:
-        route_index = max(0, int(params.get("route_index") or 0))
-    except Exception:
-        route_index = 0
-    route = chain[route_index] if 0 <= route_index < len(chain) else (chain[0] if chain else None)
-    if not route:
-        raise HTTPException(status_code=503, detail="no main_chain configured")
+    # 表单覆盖:优先测「当前表单里正在填的 url+model」,Key 留空时向已存路由借。
+    # 不带覆盖时维持旧行为:测 chain 里 route_index 指定的那条(默认主用)。
+    ov_url = str(params.get("url") or "").strip().rstrip("/")
+    ov_model = str(params.get("model") or "").strip()
+    ov_key = str(params.get("key") or "").strip()
+    if ov_url and ov_model:
+        borrowed: dict[str, Any] | None = None
+        if not ov_key:
+            borrowed = _borrow_route(chain, ov_url, params.get("route_index"))
+            if borrowed:
+                ov_key = str(borrowed.get("key") or "")
+        if not ov_key:
+            raise HTTPException(status_code=400, detail="Key 为空且没有可借用的已存路由,请先粘贴 API Key")
+        route: dict[str, Any] = {"url": ov_url, "key": ov_key, "model": ov_model, "headers": dict((borrowed or {}).get("headers") or {})}
+        route_index = -1
+    else:
+        try:
+            route_index = max(0, int(params.get("route_index") or 0))
+        except Exception:
+            route_index = 0
+        route = chain[route_index] if 0 <= route_index < len(chain) else (chain[0] if chain else None)
+        if not route:
+            raise HTTPException(status_code=503, detail="no main_chain configured")
     prompt = str(params.get("prompt") or params.get("text") or "hello")
     minimal_tool = bool(params.get("minimal_tool", False))
     with_tools = bool(params.get("with_tools", False)) or minimal_tool
@@ -2940,15 +2990,7 @@ async def loop_models(request: Request):
     key = str(body.get("key") or "").strip()
     borrowed: dict[str, Any] | None = None
     if not key:
-        try:
-            idx = int(body.get("route_index"))
-        except Exception:
-            idx = -1
-        candidates = ([chain[idx]] if 0 <= idx < len(chain) else []) + [r for r in chain if url and str(r.get("url") or "").rstrip("/") == url]
-        for cand in candidates:
-            if cand.get("key"):
-                borrowed = cand
-                break
+        borrowed = _borrow_route(chain, url, body.get("route_index"))
         if borrowed:
             key = str(borrowed.get("key") or "")
             if not url:

@@ -1586,6 +1586,13 @@
   .model-item:last-child{ border-bottom:0; }
   .model-item.active{ background:var(--seg-track); }
   .model-list-msg{ padding:10px 12px; font-size:12px; color:var(--text-soft); line-height:1.5; }
+  .api-item.editing{ border-color:var(--accent); box-shadow:inset 0 0 0 1px var(--accent); }
+  .api-item.flash{ animation:apiFlash 1.2s ease; }
+  @keyframes apiFlash{ 0%{ background:rgba(73,142,255,.20); } 100%{ background:var(--field-bg); } }
+  .api-use-btn{ border:1px solid var(--card-line); background:transparent; color:var(--text-soft); border-radius:8px; padding:4px 8px; font:inherit; font-size:11px; cursor:pointer; white-space:nowrap; }
+  .edit-banner{ display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--accent); background:rgba(73,142,255,.08); border-radius:10px; padding:8px 10px; font-size:12px; color:var(--text); }
+  .edit-banner .config-action{ flex:0 0 auto; padding:4px 10px; }
+  .config-action.saved{ background:var(--accent); color:var(--accent-fg); border-color:var(--accent); }
   @media (max-width:520px){ .config-hub{ grid-template-columns:1fr; } }
 
   /* segmented control */
@@ -2997,6 +3004,10 @@
       <section class="settings-card config-view" id="apiConfigView">
         <div class="config-view-head"><button class="config-view-back" data-config-back type="button" aria-label="返回连接与工具">‹</button><div class="config-view-title"><strong>AI API</strong><span>管理多个 OpenAI 兼容接口（自动 fallback）</span></div></div>
         <div class="api-list" id="apiList"></div>
+        <div class="edit-banner" id="apiEditBanner" style="display:none;margin-top:4px">
+          <span id="apiEditBannerText">正在编辑</span>
+          <button type="button" class="config-action ghost" id="apiEditCancelBtn">取消编辑</button>
+        </div>
         <div class="config-fields" id="apiConfigFields" style="margin-top:4px">
           <input id="apiUrlInput" type="url" placeholder="API 地址，例如 https://api.example.com/v1" autocomplete="url">
           <input id="apiKeyInput" type="password" placeholder="API Key（留空表示保持原 Key）" autocomplete="off">
@@ -3573,7 +3584,7 @@ const statusCopy = $("#statusCopy"), statusSidEl = $("#statusSid"), statusUsedEl
 const sessionBtn = $("#sessionBtn"), sessionPop = $("#sessionPop"), sessionList = $("#sessionList"), sessionNewBtn = $("#sessionNewBtn");
 const terminalBtn = $("#terminalBtn"), terminalPanel = $("#terminalPanel"), terminalBack = $("#terminalBack"), terminalLog = $("#terminalLog"), terminalForm = $("#terminalForm"), terminalInput = $("#terminalInput"), terminalSession = $("#terminalSession");
 const brainHint = $("#brainHint");
-const apiUrlInput = $("#apiUrlInput"), apiKeyInput = $("#apiKeyInput"), apiModelInput = $("#apiModelInput"), apiHeadersInput = $("#apiHeadersInput"), apiSessionHeaderInput = $("#apiSessionHeaderInput"), apiSaveBtn = $("#apiSaveBtn"), apiDebugBtn = $("#apiDebugBtn"), apiDebugOutput = $("#apiDebugOutput"), apiConfigHint = $("#apiConfigHint"), apiModelsFetchBtn = $("#apiModelsFetchBtn"), apiModelDropdown = $("#apiModelDropdown");
+const apiUrlInput = $("#apiUrlInput"), apiKeyInput = $("#apiKeyInput"), apiModelInput = $("#apiModelInput"), apiHeadersInput = $("#apiHeadersInput"), apiSessionHeaderInput = $("#apiSessionHeaderInput"), apiSaveBtn = $("#apiSaveBtn"), apiDebugBtn = $("#apiDebugBtn"), apiDebugOutput = $("#apiDebugOutput"), apiConfigHint = $("#apiConfigHint"), apiModelsFetchBtn = $("#apiModelsFetchBtn"), apiModelDropdown = $("#apiModelDropdown"), apiEditBanner = $("#apiEditBanner"), apiEditBannerText = $("#apiEditBannerText"), apiEditCancelBtn = $("#apiEditCancelBtn");
 const mcpNameInput = $("#mcpNameInput"), mcpUrlInput = $("#mcpUrlInput"), mcpTokenInput = $("#mcpTokenInput"), mcpEnabledInput = $("#mcpEnabledInput"), mcpSaveBtn = $("#mcpSaveBtn"), mcpDebugBtn = $("#mcpDebugBtn"), mcpToolCallBtn = $("#mcpToolCallBtn"), mcpDebugOutput = $("#mcpDebugOutput"), mcpConfigHint = $("#mcpConfigHint");
 const configHubView = $("#configHubView"), apiConfigView = $("#apiConfigView"), mcpConfigView = $("#mcpConfigView"), apiList = $("#apiList"), mcpList = $("#mcpList");
 const openApiConfigBtn = $("#openApiConfigBtn"), openMcpConfigBtn = $("#openMcpConfigBtn"), apiEntryStatus = $("#apiEntryStatus"), mcpEntryStatus = $("#mcpEntryStatus");
@@ -5215,7 +5226,8 @@ function renderApiList(){
   routes.forEach((route, position) => {
     const item = document.createElement("div");
     item.className = "api-item";
-    
+    if (editingApiIndex !== null && route.index === editingApiIndex) item.classList.add("editing");
+
     const head = document.createElement("div");
     head.className = "api-item-head";
     
@@ -5235,7 +5247,17 @@ function renderApiList(){
     
     const actions = document.createElement("div");
     actions.className = "api-item-actions";
-    
+
+    if (position > 0) {
+      const usePrimary = document.createElement("button");
+      usePrimary.className = "api-use-btn";
+      usePrimary.type = "button";
+      usePrimary.textContent = "设为主用";
+      usePrimary.dataset.apiAction = "primary";
+      usePrimary.dataset.apiPosition = position;
+      actions.append(usePrimary);
+    }
+
     const edit = document.createElement("button");
     edit.className = "mcp-icon-btn";
     edit.type = "button";
@@ -5258,14 +5280,22 @@ function renderApiList(){
     apiList.appendChild(item);
   });
 }
+function flashApiItem(position){
+  const el = apiList && apiList.children[position];
+  if (!el) return;
+  el.classList.add("flash");
+  el.scrollIntoView({ behavior:"smooth", block:"nearest" });
+  setTimeout(() => el.classList.remove("flash"), 1300);
+}
 function resetApiForm(){
   editingApiIndex = null;
   if (apiUrlInput) apiUrlInput.value = "";
-  if (apiKeyInput) apiKeyInput.value = "";
+  if (apiKeyInput) { apiKeyInput.value = ""; apiKeyInput.placeholder = "API Key（同地址已存过 Key 可留空）"; }
   if (apiModelInput) apiModelInput.value = "";
   if (apiHeadersInput) apiHeadersInput.value = "";
   if (apiSessionHeaderInput) apiSessionHeaderInput.value = "";
   if (apiModelDropdown) { apiModelDropdown.style.display = "none"; apiModelDropdown.innerHTML = ""; }
+  if (apiEditBanner) apiEditBanner.style.display = "none";
   if (apiSaveBtn) apiSaveBtn.textContent = "添加 API 路由";
 }
 function renderMcpList(){
@@ -5513,7 +5543,11 @@ async function saveLoopConfig(payload, hint){
     const r = await fetch(`${API_BASE}/app/loop_config`, { method:"POST", headers:{ ...authHeaders(), "Content-Type":"application/json" }, body:JSON.stringify(payload) });
     if (!r.ok){
       let detail = "";
-      try{ detail = (await r.json()).detail || ""; }catch(_){ }
+      try{
+        detail = (await r.json()).detail || "";
+        // relay 代理会把 loop 的错误体整段塞进 detail(一层 JSON 字符串),拆一层再显示
+        if (typeof detail === "string" && detail.trim().startsWith("{")) { try{ const inner = JSON.parse(detail); detail = inner.detail || detail; }catch(_){ } }
+      }catch(_){ }
       throw new Error(detail || "save " + r.status);
     }
     savedLoopConfig = await r.json();
@@ -6017,8 +6051,16 @@ if (apiSaveBtn) apiSaveBtn.addEventListener("click", async () => {
   if (position >= 0) current[position] = entry; else current.push(entry);
   const saved = await saveLoopConfig({ main_chain: current.map((r, i) => ({ ...r, index: i, key: i === (position >= 0 ? position : current.length - 1) ? entry.key : "" })) }, apiConfigHint);
   if (saved) {
+    const savedPos = position >= 0 ? position : current.length - 1;
     resetApiForm();
     renderApiList();
+    flashApiItem(savedPos);
+    if (apiConfigHint) apiConfigHint.textContent = "";
+    if (apiSaveBtn) {
+      apiSaveBtn.classList.add("saved");
+      apiSaveBtn.textContent = "✓ 已保存";
+      setTimeout(() => { apiSaveBtn.classList.remove("saved"); apiSaveBtn.textContent = "添加 API 路由"; }, 1600);
+    }
     if (current.length === 1) await saveBrain("loop");
   }
 });
@@ -6063,10 +6105,19 @@ if (apiList) apiList.addEventListener("click", async (e) => {
   const current = savedLoopConfig && Array.isArray(savedLoopConfig.main_chain) ? savedLoopConfig.main_chain.slice() : [];
   const route = current[position];
   if (!route) return;
+  if (action === "primary") {
+    // 一键设主用:把这条移到链首;各行的 Key 由后端按 url+model 各自找回,不会因重排错位
+    resetApiForm();
+    const [picked] = current.splice(position, 1);
+    current.unshift(picked);
+    const promoted = await saveLoopConfig({ main_chain: current.map((x, i) => ({ ...x, index: i })) }, apiConfigHint);
+    if (promoted) flashApiItem(0);
+    return;
+  }
   if (action === "edit") {
     editingApiIndex = route.index;
     if (apiUrlInput) apiUrlInput.value = route.url || "";
-    if (apiKeyInput) apiKeyInput.value = "";
+    if (apiKeyInput) { apiKeyInput.value = ""; apiKeyInput.placeholder = "API Key（留空表示保持原 Key）"; }
     if (apiModelInput) apiModelInput.value = route.model || "";
     if (apiHeadersInput) {
       const h = route.headers || {};
@@ -6075,6 +6126,9 @@ if (apiList) apiList.addEventListener("click", async (e) => {
     if (apiSessionHeaderInput) apiSessionHeaderInput.value = route.session_header || "";
     if (apiModelDropdown) { apiModelDropdown.style.display = "none"; apiModelDropdown.innerHTML = ""; }
     if (apiSaveBtn) apiSaveBtn.textContent = "保存修改";
+    if (apiEditBannerText) apiEditBannerText.textContent = `正在编辑：${route.model || route.url}（${position === 0 ? "主用" : `备用 ${position}`}）`;
+    if (apiEditBanner) apiEditBanner.style.display = "";
+    renderApiList();
     if (apiConfigFields) apiConfigFields.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } else if (action === "delete") {
     if (!confirm(`确定删除 ${route.model || route.url} 吗？`)) return;
@@ -6084,14 +6138,27 @@ if (apiList) apiList.addEventListener("click", async (e) => {
     if (current.length === 0) await saveBrain("desktop");
   }
 });
+if (apiEditCancelBtn) apiEditCancelBtn.addEventListener("click", () => {
+  resetApiForm();
+  renderApiList();
+  if (apiConfigHint) apiConfigHint.textContent = "";
+});
 if (apiDebugBtn) apiDebugBtn.addEventListener("click", async () => {
-  const route = (savedLoopConfig && savedLoopConfig.main_chain || [])[0] || {};
-  if (!route.url) { if (apiDebugOutput) { apiDebugOutput.style.display = "block"; apiDebugOutput.textContent = "请先填写 API 地址并保存"; } return; }
-  if (apiDebugOutput) { apiDebugOutput.style.display = "block"; apiDebugOutput.textContent = "正在测试..."; }
+  // 测的就是表单里当前填的这一组 url+model;Key 留空时由后端向已存路由借
+  const url = apiUrlInput ? apiUrlInput.value.trim() : "";
+  const model = apiModelInput ? apiModelInput.value.trim() : "";
+  if (!url || !model) {
+    if (apiDebugOutput) { apiDebugOutput.style.display = "block"; apiDebugOutput.textContent = "请先在表单里填好 API 地址和模型名称——测的是表单里这一组"; }
+    return;
+  }
+  if (apiDebugOutput) { apiDebugOutput.style.display = "block"; apiDebugOutput.textContent = `正在测试：${model}\n${url}\n请稍候...`; }
   try {
-    const r = await fetch(`${API_BASE}/app/debug-chat`, { method:"POST", headers:{ ...authHeaders(), "Content-Type":"application/json" }, body:JSON.stringify({}) });
+    const r = await fetch(`${API_BASE}/app/debug-chat`, { method:"POST", headers:{ ...authHeaders(), "Content-Type":"application/json" }, body:JSON.stringify({ url, model, key: apiKeyInput ? apiKeyInput.value.trim() : "", route_index: editingApiIndex }) });
     const body = await r.json();
-    if (apiDebugOutput) apiDebugOutput.textContent = JSON.stringify(body, null, 2);
+    const status = body.status || r.status;
+    const ok = r.ok && status >= 200 && status < 300;
+    const head = `${ok ? "✓ 连接成功" : "✗ 测试失败"}　目标：${body.request_model || model} @ ${String(body.url || url).replace(/\/chat\/completions$/, "")}\nHTTP ${status}\n────────\n`;
+    if (apiDebugOutput) apiDebugOutput.textContent = head + JSON.stringify(body, null, 2);
   } catch (err) {
     if (apiDebugOutput) apiDebugOutput.textContent = `请求失败：${err.message || err}`;
   }
