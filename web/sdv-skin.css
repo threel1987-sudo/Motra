@@ -409,10 +409,14 @@ html[data-theme="sdv"] .widget-board__code{ color: var(--ink); }
 /* ════════════ 设置 / 个人资料 / 房间页 ════════════ */
 html[data-theme="sdv"] .profile-page,
 html[data-theme="sdv"] .room-page{
-  background: var(--cream);
+  background-color: var(--cream);
+  background-image: var(--wall-default);
+  background-size: cover;
+  background-position: center;
 }
+/* 薄纱恢复显示:壁纸上面盖奶油 scrim,可读又透出像素风景 */
 html[data-theme="sdv"] .profile-page::before,
-html[data-theme="sdv"] .room-page::before{ display: none; }
+html[data-theme="sdv"] .room-page::before{ background: var(--scrim); }
 html[data-theme="sdv"] .profile-topbar h2,
 html[data-theme="sdv"] .room-topbar h2{ color: var(--ink); }
 html[data-theme="sdv"] .profile-back,
