@@ -1581,6 +1581,11 @@
   .mcp-debug-label{ font-size:11px; color:var(--text-faint); font-weight:500; letter-spacing:.03em; text-transform:uppercase; }
   .config-action.ghost{ background:transparent; color:var(--text-soft); border-color:var(--card-line); font-size:11.5px; }
   .config-action.ghost:hover{ background:var(--seg-track); color:var(--text); }
+  .model-list{ max-height:220px; overflow-y:auto; border:1px solid var(--card-line); border-radius:10px; background:var(--field-bg); }
+  .model-item{ display:block; width:100%; border:0; border-bottom:1px solid var(--field-line); background:transparent; color:var(--text); text-align:left; padding:10px 12px; font:inherit; font-size:12px; cursor:pointer; }
+  .model-item:last-child{ border-bottom:0; }
+  .model-item.active{ background:var(--seg-track); }
+  .model-list-msg{ padding:10px 12px; font-size:12px; color:var(--text-soft); line-height:1.5; }
   @media (max-width:520px){ .config-hub{ grid-template-columns:1fr; } }
 
   /* segmented control */
@@ -2996,10 +3001,10 @@
           <input id="apiUrlInput" type="url" placeholder="API 地址，例如 https://api.example.com/v1" autocomplete="url">
           <input id="apiKeyInput" type="password" placeholder="API Key（留空表示保持原 Key）" autocomplete="off">
           <div class="config-row">
-            <input id="apiModelInput" type="text" placeholder="模型名称，例如 gpt-4o" autocomplete="off" list="apiModelList">
+            <input id="apiModelInput" type="text" placeholder="模型名称，例如 gpt-4o" autocomplete="off">
             <button class="config-action ghost" id="apiModelsFetchBtn" type="button">拉取列表</button>
           </div>
-          <datalist id="apiModelList"></datalist>
+          <div class="model-list" id="apiModelDropdown" style="display:none"></div>
           <div class="config-field-label">自定义 Headers（可选，每行一条 key=value）</div>
           <textarea id="apiHeadersInput" class="config-textarea" rows="2" placeholder="X-Api-Key=sk-xxx&#10;Authorization=Bearer xxx" autocomplete="off" spellcheck="false"></textarea>
           <div class="config-field-label">会话头名（可选，只填头名，不要写 =值；每个聊天窗口会自动填入自己的会话 ID）</div>
@@ -3568,7 +3573,7 @@ const statusCopy = $("#statusCopy"), statusSidEl = $("#statusSid"), statusUsedEl
 const sessionBtn = $("#sessionBtn"), sessionPop = $("#sessionPop"), sessionList = $("#sessionList"), sessionNewBtn = $("#sessionNewBtn");
 const terminalBtn = $("#terminalBtn"), terminalPanel = $("#terminalPanel"), terminalBack = $("#terminalBack"), terminalLog = $("#terminalLog"), terminalForm = $("#terminalForm"), terminalInput = $("#terminalInput"), terminalSession = $("#terminalSession");
 const brainHint = $("#brainHint");
-const apiUrlInput = $("#apiUrlInput"), apiKeyInput = $("#apiKeyInput"), apiModelInput = $("#apiModelInput"), apiHeadersInput = $("#apiHeadersInput"), apiSessionHeaderInput = $("#apiSessionHeaderInput"), apiSaveBtn = $("#apiSaveBtn"), apiDebugBtn = $("#apiDebugBtn"), apiDebugOutput = $("#apiDebugOutput"), apiConfigHint = $("#apiConfigHint"), apiModelsFetchBtn = $("#apiModelsFetchBtn"), apiModelList = $("#apiModelList");
+const apiUrlInput = $("#apiUrlInput"), apiKeyInput = $("#apiKeyInput"), apiModelInput = $("#apiModelInput"), apiHeadersInput = $("#apiHeadersInput"), apiSessionHeaderInput = $("#apiSessionHeaderInput"), apiSaveBtn = $("#apiSaveBtn"), apiDebugBtn = $("#apiDebugBtn"), apiDebugOutput = $("#apiDebugOutput"), apiConfigHint = $("#apiConfigHint"), apiModelsFetchBtn = $("#apiModelsFetchBtn"), apiModelDropdown = $("#apiModelDropdown");
 const mcpNameInput = $("#mcpNameInput"), mcpUrlInput = $("#mcpUrlInput"), mcpTokenInput = $("#mcpTokenInput"), mcpEnabledInput = $("#mcpEnabledInput"), mcpSaveBtn = $("#mcpSaveBtn"), mcpDebugBtn = $("#mcpDebugBtn"), mcpToolCallBtn = $("#mcpToolCallBtn"), mcpDebugOutput = $("#mcpDebugOutput"), mcpConfigHint = $("#mcpConfigHint");
 const configHubView = $("#configHubView"), apiConfigView = $("#apiConfigView"), mcpConfigView = $("#mcpConfigView"), apiList = $("#apiList"), mcpList = $("#mcpList");
 const openApiConfigBtn = $("#openApiConfigBtn"), openMcpConfigBtn = $("#openMcpConfigBtn"), apiEntryStatus = $("#apiEntryStatus"), mcpEntryStatus = $("#mcpEntryStatus");
@@ -5260,6 +5265,7 @@ function resetApiForm(){
   if (apiModelInput) apiModelInput.value = "";
   if (apiHeadersInput) apiHeadersInput.value = "";
   if (apiSessionHeaderInput) apiSessionHeaderInput.value = "";
+  if (apiModelDropdown) { apiModelDropdown.style.display = "none"; apiModelDropdown.innerHTML = ""; }
   if (apiSaveBtn) apiSaveBtn.textContent = "添加 API 路由";
 }
 function renderMcpList(){
@@ -6026,17 +6032,28 @@ if (apiModelsFetchBtn) apiModelsFetchBtn.addEventListener("click", async () => {
     const r = await fetch(`${API_BASE}/app/models`, { method: "POST", headers: { ...authHeaders(), "Content-Type": "application/json" }, body: JSON.stringify({ url, key: apiKeyInput.value.trim(), route_index: editingApiIndex }) });
     const body = await r.json();
     if (body.ok && Array.isArray(body.models) && body.models.length) {
-      if (apiModelList) apiModelList.innerHTML = body.models.map(m => `<option value="${escapeHtml(m)}">`).join("");
-      if (apiConfigHint) apiConfigHint.textContent = `已拉取 ${body.models.length} 个模型，点模型输入框挑一个`;
-      if (apiModelInput) apiModelInput.focus();
-    } else if (apiConfigHint) {
-      apiConfigHint.textContent = `拉取失败：${body.error || body.detail || ("HTTP " + (body.status || r.status))}`;
+      if (apiModelDropdown) {
+        apiModelDropdown.innerHTML = body.models.map(m => `<button type="button" class="model-item" data-model="${escapeHtml(m)}">${escapeHtml(m)}</button>`).join("");
+        apiModelDropdown.style.display = "";
+      }
+      if (apiConfigHint) apiConfigHint.textContent = `已拉取 ${body.models.length} 个模型，点下面任意一个填入`;
+    } else {
+      const msg = body.error || body.detail || ("HTTP " + (body.status || r.status));
+      if (apiModelDropdown) { apiModelDropdown.innerHTML = `<div class="model-list-msg">拉取失败：${escapeHtml(String(msg))}</div>`; apiModelDropdown.style.display = ""; }
+      if (apiConfigHint) apiConfigHint.textContent = "";
     }
   } catch (err) {
-    if (apiConfigHint) apiConfigHint.textContent = `请求失败：${err.message || err}`;
+    if (apiModelDropdown) { apiModelDropdown.innerHTML = `<div class="model-list-msg">请求失败：${escapeHtml(String(err.message || err))}</div>`; apiModelDropdown.style.display = ""; }
   } finally {
     apiModelsFetchBtn.disabled = false;
   }
+});
+if (apiModelDropdown) apiModelDropdown.addEventListener("click", (e) => {
+  const btn = e.target.closest(".model-item");
+  if (!btn) return;
+  if (apiModelInput) apiModelInput.value = btn.dataset.model || "";
+  apiModelDropdown.querySelectorAll(".model-item").forEach(el => el.classList.toggle("active", el === btn));
+  if (apiConfigHint) apiConfigHint.textContent = "";
 });
 if (apiList) apiList.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-api-action]");
@@ -6056,6 +6073,7 @@ if (apiList) apiList.addEventListener("click", async (e) => {
       apiHeadersInput.value = Object.keys(h).map(k => `${k}=${h[k]}`).join("\n");
     }
     if (apiSessionHeaderInput) apiSessionHeaderInput.value = route.session_header || "";
+    if (apiModelDropdown) { apiModelDropdown.style.display = "none"; apiModelDropdown.innerHTML = ""; }
     if (apiSaveBtn) apiSaveBtn.textContent = "保存修改";
     if (apiConfigFields) apiConfigFields.scrollIntoView({ behavior: "smooth", block: "nearest" });
   } else if (action === "delete") {
