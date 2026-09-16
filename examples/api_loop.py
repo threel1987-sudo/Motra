@@ -1246,7 +1246,7 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
                 "url": str(item.get("url") or prev.get("url") or "").strip().rstrip("/"),
                 "key": str(item.get("key") or prev.get("key") or ""),
             }
-            # 会话头名(如 X-Ombre-Session-Id):前端不传时继承旧值,传空串可显式清除
+            # 会话头名(如 Serein 的 X-Serein-Window-ID):前端不传时继承旧值,传空串可显式清除
             sh = str(item.get("session_header", prev.get("session_header", "")) or "").strip()
             if sh:
                 entry["session_header"] = sh
@@ -1779,14 +1779,13 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
     for hk, hv in (route.get("headers") or {}).items():
         if str(hk) and str(hv):
             req_headers[str(hk)] = str(hv)
-    # 会话头(如 OB gateway 的 X-Ombre-Session-Id):把当前聊天窗口的 api_session
+    # 会话头(如 Serein gateway 的 X-Serein-Window-ID):把当前聊天窗口的 api_session
     # 透传给网关。不配 session_header 时完全不发,行为与之前一致。
-    # 为什么需要:OB 的语义召回去重(semantic_session_dedupe)、轮次注入、
-    # is_session_start/handoff 苏醒判定全部按 session 隔离;不发这个头时所有
-    # 客户端挤在默认 session "main" 里互相污染——别的客户端刚注入过的记忆,
-    # 这边再问就被去重压掉,表现为「关键词召回不起作用」;新窗口也永远触发不了
-    # handoff 苏醒(main 早就有历史了)。每个窗口一个 session 后,这些机制各自
-    # 独立,和 Kelivo 等客户端对齐。route.headers 里显式配了同名头时以它为准。
+    # 为什么需要:Serein 的自动召回准入、召回冷却和 /resume 窗口续接全部按
+    # window 隔离;不发这个头时所有客户端挤在同一个默认会话里互相污染——别的
+    # 客户端刚交付过的记忆,这边再问就被冷却压掉,表现为「记忆想不起来」。
+    # 每个窗口一个 window id 后,各窗口的召回与冷却各自独立,和 Kelivo 等客户端
+    # 对齐。route.headers 里显式配了同名头时以它为准。
     session_header = str(route.get("session_header") or "").strip()
     if session_header and session_id and session_header.lower() not in {str(k).lower() for k in req_headers}:
         req_headers[session_header] = ob_session_id(session_id)
