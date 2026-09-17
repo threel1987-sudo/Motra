@@ -681,6 +681,7 @@ def _drives_set_sleep(sleep_type: str) -> dict[str, Any]:
     resp = _drives_call("POST", "/internal/drives/sleep", {"type": sleep_type}, timeout=8.0)
     if not resp:
         raise RuntimeError("Drivesoid 未响应(情绪引擎没起来?)")
+    eventide_on_sleep(sleep_type)  # 睡眠是全身的事:情绪切换状态,身体同步结算
     return {"ok": True, "sleep": sleep_type}
 
 
@@ -701,7 +702,10 @@ def _drives_auto_wake() -> None:
         except Exception:
             hours = 0.0
     wake_type = "sleep_end" if hours >= 6.0 else "sleep_interrupt"
-    _drives_call("POST", "/internal/drives/sleep", {"type": wake_type}, timeout=8.0)
+    try:
+        _drives_set_sleep(wake_type)
+    except Exception as exc:
+        print(f"[drives] auto-wake failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
     print(f"[drives] auto-wake: {wake_type} (asleep {hours:.1f}h)", flush=True)
 
 
@@ -806,6 +810,27 @@ def eventide_note_user_message(text: str) -> None:
         _eventide_save()
     except Exception as exc:
         print(f"[eventide] note_user_message failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+
+
+def eventide_on_sleep(sleep_type: str) -> None:
+    """睡眠状态镜像到身体引擎。Eventide 没有睡眠概念,在状态切换的瞬间结算一笔:
+    起床回血(疲劳大降、压抑小降);半夜被吵醒反而更累更敏感;入睡不结算
+    (恢复在起床时一次到账,和人对「睡了一觉」的体感一致)。"""
+    if not eventide_enabled():
+        return
+    deltas = {
+        "sleep_end":       {"fatigue": -35, "pressure": -5},
+        "sleep_interrupt": {"fatigue": 8, "sensitivity": 4},
+    }.get(sleep_type)
+    if not deltas:
+        return
+    try:
+        state = _eventide_load()
+        applied = _EVENTIDE_RUNTIME.apply_delta(state, deltas)
+        _eventide_save()
+        print(f"[eventide] sleep mirror {sleep_type}: {applied}", flush=True)
+    except Exception as exc:
+        print(f"[eventide] sleep mirror failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
 
 
 def eventide_context_block() -> str:
