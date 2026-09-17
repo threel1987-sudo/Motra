@@ -6209,16 +6209,20 @@ if (apiDebugBtn) apiDebugBtn.addEventListener("click", async () => {
     if (apiDebugOutput) { apiDebugOutput.style.display = "block"; apiDebugOutput.textContent = "请先在表单里填好 API 地址和模型名称——测的是表单里这一组"; }
     return;
   }
-  if (apiDebugOutput) { apiDebugOutput.style.display = "block"; apiDebugOutput.textContent = `正在测试：${model}\n${url}\n请稍候...`; }
+  if (apiDebugOutput) { apiDebugOutput.style.display = "block"; apiDebugOutput.textContent = `正在测试:${model}\n${url}\n请稍候...`; }
   try {
-    const r = await fetch(`${API_BASE}/app/debug-chat`, { method:"POST", headers:{ ...authHeaders(), "Content-Type":"application/json" }, body:JSON.stringify({ url, model, key: apiKeyInput ? apiKeyInput.value.trim() : "", route_index: editingApiIndex }) });
-    const body = await r.json();
-    const status = body.status || r.status;
-    const ok = r.ok && status >= 200 && status < 300;
-    const head = `${ok ? "✓ 连接成功" : "✗ 测试失败"}　目标：${body.request_model || model} @ ${String(body.url || url).replace(/\/chat\/completions$/, "")}\nHTTP ${status}\n────────\n`;
+    // 静默探测:只拉网关的模型列表验证 鉴权+可达+模型名,不发起任何对话——
+    // 之前走 debug-chat 发真实 "hello",会被 Serein 归档、甚至触发心绪评估,污染对方状态。
+    const r = await fetch(`${API_BASE}/app/models`, { method:"POST", headers:{ ...authHeaders(), "Content-Type":"application/json" }, body:JSON.stringify({ url, key: apiKeyInput ? apiKeyInput.value.trim() : "", route_index: editingApiIndex }) });
+    const body = await r.json().catch(() => ({}));
+    const ok = r.ok && !!body.ok;
+    const listed = Array.isArray(body.models) && body.models.includes(model);
+    const head = ok
+      ? `✓ 连接成功　${listed ? `模型「${model}」在网关上已配置` : `⚠ 能连上,但模型列表里没有「${model}」,检查拼写`}\n(静默探测:只拉取模型列表,不生成对话)\n────────\n`
+      : `✗ 测试失败　${body.error || body.detail || ("HTTP " + (body.status || r.status))}\n────────\n`;
     if (apiDebugOutput) apiDebugOutput.textContent = head + JSON.stringify(body, null, 2);
   } catch (err) {
-    if (apiDebugOutput) apiDebugOutput.textContent = `请求失败：${err.message || err}`;
+    if (apiDebugOutput) apiDebugOutput.textContent = `请求失败:${err.message || err}`;
   }
 });
 if (mcpAddBtn) mcpAddBtn.addEventListener("click", () => {
@@ -6272,7 +6276,7 @@ if (mcpDebugBtn) mcpDebugBtn.addEventListener("click", async () => {
 if (mcpToolCallBtn) mcpToolCallBtn.addEventListener("click", async () => {
   if (mcpDebugOutput) {
     mcpDebugOutput.style.display = "block";
-    mcpDebugOutput.textContent = "正在发送带工具的测试请求到 Gateway...";
+    mcpDebugOutput.textContent = "正在发送带工具的测试请求到 Gateway(会真实生成一轮对话,可能进对方心绪)...";
   }
   try {
     const r = await fetch(`${API_BASE}/app/debug-chat`, {
