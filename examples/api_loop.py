@@ -727,7 +727,9 @@ _EVENTIDE_META: dict[str, Any] = {}
 
 
 def eventide_enabled() -> bool:
-    return EVENTIDE_ENABLED and EventideRuntime is not None
+    # 身体和情绪是他的一体两面:PWA「情绪与身体」开关(drives_enabled)同时管两边。
+    # 冻结时身体卡停注入、停 tick,时间对他静止;解冻后下一轮 tick 补结算(上限 6h)。
+    return EVENTIDE_ENABLED and EventideRuntime is not None and drives_enabled()
 
 
 def _eventide_trigger_words() -> list[dict[str, str]]:
@@ -3080,7 +3082,7 @@ async def loop_drives_sleep(request: Request):
     if sleep_type not in ("sleep_start", "sleep_end"):
         raise HTTPException(status_code=400, detail="type 只接受 sleep_start / sleep_end")
     if not drives_enabled():
-        raise HTTPException(status_code=409, detail="情绪系统已关闭,先打开它")
+        raise HTTPException(status_code=409, detail="情绪与身体已暂停,先打开它")
     return await asyncio.to_thread(_drives_set_sleep, sleep_type)
 
 

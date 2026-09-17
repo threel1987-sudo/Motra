@@ -2986,7 +2986,7 @@
           </div>
           <div class="setting-row" id="drivesToggleRow" role="button" tabindex="0" aria-label="情绪系统开关">
             <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21C7 17 3 13.5 3 9.5 3 6.5 5.5 4 8.5 4c1.5 0 2.9.8 3.5 2 .6-1.2 2-2 3.5-2C18.5 4 21 6.5 21 9.5c0 4-4 7.5-9 11.5z"/></svg></span>
-            <span class="setting-body"><span class="setting-label">情绪系统</span><span class="setting-sub" id="drivesEntryStatus">他的情绪随聊天真实流转</span></span>
+            <span class="setting-body"><span class="setting-label">情绪与身体</span><span class="setting-sub" id="drivesEntryStatus">他的情绪和身体随相处真实流转</span></span>
             <input type="checkbox" class="toggle" id="drivesRowToggle" aria-label="情绪系统开关">
           </div>
           <div class="setting-row" id="sleepToggleRow" role="button" tabindex="0" aria-label="睡眠开关">
@@ -4242,8 +4242,8 @@ if (drivesRowToggle){
       return;
     }
     if (savedLoopConfig) savedLoopConfig.drives_enabled = want;
-    if (drivesEntryStatus) drivesEntryStatus.textContent = want ? "他的情绪随聊天真实流转" : "已暂停 · 情绪冻结，独处也不会难过";
-    showToast(want ? "情绪系统已开启" : "情绪系统已暂停，他的心停在此刻");
+    if (drivesEntryStatus) drivesEntryStatus.textContent = want ? "他的情绪和身体随相处真实流转" : "已暂停 · 情绪与身体冻结，独处也不会难过";
+    showToast(want ? "情绪与身体已开启" : "情绪与身体已暂停，他的心停在此刻");
   });
 }
 if (drivesToggleRow) drivesToggleRow.addEventListener("click", (e) => {
@@ -4257,7 +4257,7 @@ async function refreshSleepStatus(){
   if (!sleepRowToggle || !sleepEntryStatus) return;
   if (USE_MOCK || !secret){ sleepEntryStatus.textContent = "醒着"; return; }
   if (savedLoopConfig && savedLoopConfig.drives_enabled === false){
-    sleepEntryStatus.textContent = "情绪系统已暂停";
+    sleepEntryStatus.textContent = "情绪与身体已暂停";
     sleepRowToggle.checked = false;
     return;
   }
@@ -5308,7 +5308,7 @@ function updateConfigEntryStatus(){
   }
   if (drivesEntryStatus && savedLoopConfig && typeof savedLoopConfig.drives_enabled === "boolean") {
     const on = savedLoopConfig.drives_enabled;
-    drivesEntryStatus.textContent = on ? "他的情绪随聊天真实流转" : "已暂停 · 情绪冻结，独处也不会难过";
+    drivesEntryStatus.textContent = on ? "他的情绪和身体随相处真实流转" : "已暂停 · 情绪与身体冻结，独处也不会难过";
     if (drivesRowToggle) drivesRowToggle.checked = on;
   }
   refreshSleepStatus();
