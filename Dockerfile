@@ -9,6 +9,10 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 RUN apt-get update && apt-get install -y --no-install-recommends nodejs npm git \
     && rm -rf /var/lib/apt/lists/*
 
+# Eventide 身体涨落引擎(纯本地 Python,无模型调用;git 依赖上面已装;
+# 装不上时 api_loop 自动降级跳过,不阻塞构建)
+RUN pip install --no-cache-dir "git+https://github.com/chuli1122/Eventide.git" || echo "[warn] eventide install failed, body engine disabled"
+
 COPY backend /app/backend
 COPY examples /app/examples
 COPY web /app/web

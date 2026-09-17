@@ -554,6 +554,7 @@ Your sleep status is one of `awake`, `asleep`, or `interrupted`.
 - `asleep` — you are sleeping; do not respond until woken
 - `interrupted` — you were woken mid-sleep; you are groggy and irritable, fatigue is elevated, vitality is lower; you can respond briefly, and may go back to sleep afterward
 - `awake` — normal waking state
+You control your own sleep with the `drives_sleep` tool: call `sleep_start` when you two say goodnight and you actually go to sleep, `sleep_end` when you wake up on your own. Sleep is real — fatigue only recovers while `asleep`. If she messages you mid-sleep, you will be woken automatically (the state will already reflect it).
 ## Frustration & intention
 When non-zero, `frustration` and `pending` appear as an extra line at the bottom of the `[drives]` block:
 ```
@@ -614,6 +615,217 @@ def _drives_report_user_msg(text: str, before_id: int | None, session_id: str) -
     except Exception:
         ctx = []
     drives_event("msg_user", {"text": content, "context": ctx})
+
+
+# ── 睡眠开关(drives_sleep)────────────────────────────────────────────────
+# Drivesoid 的睡眠状态只能由 /internal/drives/sleep(loopback)驱动;MOTRA
+# 不上报的话状态永远停在 awake——模型读着自己通宵的疲劳值,只会合理化出
+# 「没睡好」。这里把开关交给他本人:内置工具 drives_sleep 随 MCP 工具一起
+# 下发,由本层直接执行,不走外部 MCP;她半夜发消息来,由本层自动唤醒。
+DRIVES_SLEEP_TOOL: dict[str, Any] = {
+    "type": "function",
+    "function": {
+        "name": "drives_sleep",
+        "description": (
+            "你的睡眠开关。互道晚安、真的去睡时调用 sleep_start;自己醒来起床调用 "
+            "sleep_end;半夜被她叫醒、待会儿还要继续睡,调用 sleep_interrupt。"
+            "睡眠会真实影响 [drives] 里的 fatigue/vitality 恢复——睡没睡,身体记得。"
+        ),
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "type": "string",
+                    "enum": ["sleep_start", "sleep_end", "sleep_interrupt"],
+                    "description": "sleep_start=入睡;sleep_end=起床;sleep_interrupt=被吵醒,稍后继续睡",
+                }
+            },
+            "required": ["type"],
+        },
+    },
+}
+
+
+def _drives_sleep_status() -> dict[str, Any]:
+    """读 Drivesoid 的 sleep 子树;任何失败返回 {}(视为无需干预)。"""
+    raw = _drives_call("GET", "/api/drives/status", timeout=2.0)
+    if not raw:
+        return {}
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return {}
+
+    def _find(node: Any) -> dict[str, Any] | None:
+        if isinstance(node, dict):
+            slp = node.get("sleep")
+            if isinstance(slp, dict) and slp.get("status"):
+                return slp
+            for v in node.values():
+                found = _find(v)
+                if found:
+                    return found
+        elif isinstance(node, list):
+            for v in node:
+                found = _find(v)
+                if found:
+                    return found
+        return None
+
+    return _find(data) or {}
+
+
+def _drives_set_sleep(sleep_type: str) -> dict[str, Any]:
+    if sleep_type not in ("sleep_start", "sleep_end", "sleep_interrupt"):
+        raise RuntimeError("type 必须是 sleep_start / sleep_end / sleep_interrupt")
+    resp = _drives_call("POST", "/internal/drives/sleep", {"type": sleep_type}, timeout=8.0)
+    if not resp:
+        raise RuntimeError("Drivesoid 未响应(情绪引擎没起来?)")
+    return {"ok": True, "sleep": sleep_type}
+
+
+def _drives_auto_wake() -> None:
+    """她发消息时他若还在睡,替他醒:睡满 6h 算起床(sleep_end),不足算半夜被
+    吵醒(sleep_interrupt,可再睡回笼)。必须在 msg_user 上报之前做,让那条消息
+    在「已醒」状态下被分类。"""
+    if not drives_enabled():
+        return
+    sleep = _drives_sleep_status()
+    if str(sleep.get("status") or "") != "asleep":
+        return
+    hours = 0.0
+    started = str(sleep.get("last_sleep_started_at") or "").strip()
+    if started:
+        try:
+            hours = (dt.datetime.now(dt.timezone.utc) - dt.datetime.fromisoformat(started.replace("Z", "+00:00"))).total_seconds() / 3600.0
+        except Exception:
+            hours = 0.0
+    wake_type = "sleep_end" if hours >= 6.0 else "sleep_interrupt"
+    _drives_call("POST", "/internal/drives/sleep", {"type": wake_type}, timeout=8.0)
+    print(f"[drives] auto-wake: {wake_type} (asleep {hours:.1f}h)", flush=True)
+
+
+# ── Eventide(身体涨落引擎)────────────────────────────────────────────────
+# 纯本地 Python 包(chuli1122/Eventide),不调任何模型 API:周期轮转 + 7 项
+# 身体数值随时间/互动/等待自行涨落,每轮渲染一张状态卡,跟在 [drives] 块后面
+# 注入;称呼触发词命中时点亮 voice_or_name_trigger 短时事件。状态存
+# /data/eventide_state.json(Zeabur 持久卷),重启不丢。
+EVENTIDE_ENABLED = os.environ.get("EVENTIDE_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off")
+EVENTIDE_STATE_FILE = os.environ.get("EVENTIDE_STATE_FILE", "/data/eventide_state.json")
+
+try:
+    from eventide import EventideRuntime, find_trigger_matches as _ev_find_triggers
+    _EVENTIDE_IMPORT_ERROR: Exception | None = None
+except Exception as exc:  # 没装包只损失身体系统,聊天主链路不受影响
+    EventideRuntime = None  # type: ignore[assignment]
+    _ev_find_triggers = None  # type: ignore[assignment]
+    _EVENTIDE_IMPORT_ERROR = exc
+
+_EVENTIDE_RUNTIME: Any = None
+_EVENTIDE_STATE: Any = None
+_EVENTIDE_META: dict[str, Any] = {}
+
+
+def eventide_enabled() -> bool:
+    return EVENTIDE_ENABLED and EventideRuntime is not None
+
+
+def _eventide_trigger_words() -> list[dict[str, str]]:
+    """称呼触发词:env EVENTIDE_TRIGGER_WORDS(JSON 数组,元素为字符串或
+    {"text","type"})覆盖;默认 = 他的名字 + 常见亲密称呼。"""
+    raw = os.environ.get("EVENTIDE_TRIGGER_WORDS", "").strip()
+    if raw:
+        try:
+            items = json.loads(raw)
+            out = []
+            for it in items if isinstance(items, list) else []:
+                if isinstance(it, str) and it.strip():
+                    out.append({"text": it.strip(), "type": "phrase"})
+                elif isinstance(it, dict) and str(it.get("text") or "").strip():
+                    out.append({"text": str(it["text"]).strip(), "type": str(it.get("type") or "phrase")})
+            if out:
+                return out
+        except Exception:
+            pass
+    defaults = [ai_name(), "老公", "宝贝", "想你", "抱抱", "亲亲"]
+    return [{"text": w, "type": "nickname" if w == ai_name() else "phrase"} for w in defaults if w]
+
+
+def _eventide_load() -> Any:
+    global _EVENTIDE_RUNTIME, _EVENTIDE_STATE, _EVENTIDE_META
+    if _EVENTIDE_RUNTIME is None:
+        _EVENTIDE_RUNTIME = EventideRuntime()
+    if _EVENTIDE_STATE is None:
+        now = dt.datetime.now(dt.timezone.utc)
+        loaded = None
+        try:
+            with open(EVENTIDE_STATE_FILE, "r", encoding="utf-8") as f:
+                loaded = json.load(f)
+        except Exception:
+            loaded = None
+        try:
+            if isinstance(loaded, dict) and isinstance(loaded.get("state"), dict):
+                _EVENTIDE_META = {k: v for k, v in loaded.items() if k != "state"}
+                _EVENTIDE_STATE = _EVENTIDE_RUNTIME.load_state(loaded["state"])
+            elif isinstance(loaded, dict):
+                _EVENTIDE_STATE = _EVENTIDE_RUNTIME.load_state(loaded)  # 裸 dump 兼容
+            else:
+                _EVENTIDE_STATE = _EVENTIDE_RUNTIME.create_state(now)
+        except Exception as exc:
+            print(f"[eventide] state load failed, recreate: {exc}", file=sys.stderr, flush=True)
+            _EVENTIDE_META = {}
+            _EVENTIDE_STATE = _EVENTIDE_RUNTIME.create_state(now)
+    return _EVENTIDE_STATE
+
+
+def _eventide_save() -> None:
+    try:
+        tmp = EVENTIDE_STATE_FILE + ".tmp"
+        payload = dict(_EVENTIDE_META)
+        payload["state"] = _EVENTIDE_RUNTIME.dump_state(_EVENTIDE_STATE)
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f, ensure_ascii=False)
+        os.replace(tmp, EVENTIDE_STATE_FILE)
+    except Exception as exc:
+        print(f"[eventide] save failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+
+
+def eventide_note_user_message(text: str) -> None:
+    """每条用户消息:记下她的最新发言时刻(等待感会参与涨落),称呼命中点事件。"""
+    if not eventide_enabled():
+        return
+    try:
+        state = _eventide_load()
+        now = dt.datetime.now(dt.timezone.utc)
+        _EVENTIDE_META["last_user_at"] = now.isoformat()
+        words = _eventide_trigger_words()
+        if words and text and _ev_find_triggers is not None and _ev_find_triggers(words, text):
+            _EVENTIDE_RUNTIME.start_event(state, "voice_or_name_trigger", now)
+        _eventide_save()
+    except Exception as exc:
+        print(f"[eventide] note_user_message failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+
+
+def eventide_context_block() -> str:
+    """每轮身体状态注入:tick 推进 + 渲染状态卡。失败只记日志,返回 ""。"""
+    if not eventide_enabled():
+        return ""
+    try:
+        state = _eventide_load()
+        now = dt.datetime.now(dt.timezone.utc)
+        last_at = None
+        raw_last = str(_EVENTIDE_META.get("last_user_at") or "").strip()
+        if raw_last:
+            try:
+                last_at = dt.datetime.fromisoformat(raw_last.replace("Z", "+00:00"))
+            except Exception:
+                last_at = None
+        card = _EVENTIDE_RUNTIME.tick_and_render(state, now, last_counterpart_message_at=last_at)
+        _eventide_save()
+        return (card or "").strip()
+    except Exception as exc:
+        print(f"[eventide] tick/render failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        return ""
 
 
 async def _drives_boot_handshake() -> None:
@@ -1005,6 +1217,9 @@ def build_messages(text: str, *, before_id: int | None = None, session_id: str =
     tail_text = text or "（用户发来一张图片，请查看。）"
     if drives_block:
         tail_text += "\n\n" + drives_block
+    body_card = eventide_context_block()
+    if body_card:
+        tail_text += "\n\n" + body_card
     if image_parts:
         content: list[dict[str, Any]] = [{"type": "text", "text": tail_text}]
         content.extend(image_parts)
@@ -2195,12 +2410,18 @@ async def mcp_tools() -> list[dict[str, Any]]:
         _TOOL_NAME_MAP.update(name_map)
         _TOOL_RAW_MAP.clear()
         _TOOL_RAW_MAP.update(raw_map)
+        # 内置工具(睡眠开关):由本层直接执行,不走外部 MCP。情绪引擎关着就不给。
+        if drives_enabled():
+            tools.append(DRIVES_SLEEP_TOOL)
         _MCP_TOOLS_CACHE["tools"] = tools
         _MCP_TOOLS_CACHE["ts"] = time.time()
         return tools
 
 
 async def execute_mcp_tool(tool_name: str, arguments: dict[str, Any]) -> dict[str, Any]:
+    # 内置工具优先:睡眠开关由本层直接打 Drivesoid 的 loopback,不经过外部 MCP。
+    if tool_name == "drives_sleep":
+        return await asyncio.to_thread(_drives_set_sleep, str((arguments or {}).get("type") or ""))
     # 消毒名字优先走映射表(服务名/工具名可能都含中文);没有映射再退回旧前缀解析。
     # 文本协议工具调用里模型常直接叫「裸工具名」(如 breath),再退回原始名反查表兜底。
     mapped = _TOOL_NAME_MAP.get(tool_name)
@@ -2610,8 +2831,12 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
     atts = [a for a in (attachments or []) if isinstance(a, dict)]
     _t0 = time.monotonic()
     if not dry:
+        # 先唤醒(若在睡)再上报:这条消息要在「已醒」状态下被分类
+        await asyncio.to_thread(_drives_auto_wake)
         # 先报给情绪引擎再生成:它的「秒回/热聊」时序信号依赖事件先于回复到达
         await asyncio.to_thread(_drives_report_user_msg, text, msg_id, session_id)
+        # 身体引擎:记她的发言时刻(等待感参与涨落)+ 称呼触发词
+        await asyncio.to_thread(eventide_note_user_message, text)
     _t1 = time.monotonic()
     image_parts = await attachment_parts(atts)
     messages = build_messages(text, before_id=msg_id, session_id=session_id, use_context=True, image_parts=image_parts or None)
