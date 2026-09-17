@@ -2989,6 +2989,11 @@
             <span class="setting-body"><span class="setting-label">情绪系统</span><span class="setting-sub" id="drivesEntryStatus">他的情绪随聊天真实流转</span></span>
             <input type="checkbox" class="toggle" id="drivesRowToggle" aria-label="情绪系统开关">
           </div>
+          <div class="setting-row" id="sleepToggleRow" role="button" tabindex="0" aria-label="睡眠开关">
+            <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span>
+            <span class="setting-body"><span class="setting-label">睡眠</span><span class="setting-sub" id="sleepEntryStatus">他醒着</span></span>
+            <input type="checkbox" class="toggle" id="sleepRowToggle" aria-label="睡眠开关">
+          </div>
         </section>
 
         <!-- 账号(设计稿分组:退出登录在最后) -->
@@ -4246,6 +4251,67 @@ if (drivesToggleRow) drivesToggleRow.addEventListener("click", (e) => {
   if (drivesRowToggle) drivesRowToggle.click();
 });
 
+/* ── 睡眠开关:她手动让他睡/叫他起,走 MOTRA→Drivesoid 直连,不经过模型 ── */
+const sleepRowToggle = $("#sleepRowToggle"), sleepEntryStatus = $("#sleepEntryStatus"), sleepToggleRow = $("#sleepToggleRow");
+async function refreshSleepStatus(){
+  if (!sleepRowToggle || !sleepEntryStatus) return;
+  if (USE_MOCK || !secret){ sleepEntryStatus.textContent = "醒着"; return; }
+  if (savedLoopConfig && savedLoopConfig.drives_enabled === false){
+    sleepEntryStatus.textContent = "情绪系统已暂停";
+    sleepRowToggle.checked = false;
+    return;
+  }
+  try {
+    const r = await fetch(`${API_BASE}/app/drives/status`, { headers: authHeaders() });
+    const body = await r.json().catch(() => ({}));
+    const st = body && body.sleep && body.sleep.status || "";
+    if (!body.ok || !st){ sleepEntryStatus.textContent = "未连接"; sleepRowToggle.checked = false; return; }
+    sleepRowToggle.checked = (st === "asleep" || st === "interrupted");
+    if (st === "asleep"){
+      let extra = "";
+      if (body.sleep.last_sleep_started_at){
+        const h = (Date.now() - new Date(body.sleep.last_sleep_started_at).getTime()) / 36e5;
+        if (h >= 0) extra = ` · 已睡 ${h.toFixed(1)}h`;
+      }
+      sleepEntryStatus.textContent = "睡着中" + extra;
+    } else if (st === "interrupted"){
+      sleepEntryStatus.textContent = "半夜被吵醒,还会再睡";
+    } else {
+      sleepEntryStatus.textContent = "醒着";
+    }
+  } catch (e) {
+    sleepEntryStatus.textContent = "未连接";
+  }
+}
+if (sleepRowToggle){
+  sleepRowToggle.addEventListener("change", async () => {
+    const wantSleep = sleepRowToggle.checked;
+    if (USE_MOCK || !secret){
+      showToast(USE_MOCK ? "演示模式:开关仅本地显示" : "先登录连接再操作");
+      sleepRowToggle.checked = !wantSleep;
+      return;
+    }
+    try {
+      const r = await fetch(`${API_BASE}/app/drives/sleep`, {
+        method: "POST",
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
+        body: JSON.stringify({ type: wantSleep ? "sleep_start" : "sleep_end" }),
+      });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok || body.ok !== true) throw new Error(body.detail || body.error || ("HTTP " + r.status));
+      showToast(wantSleep ? "他睡下了,晚安" : "他醒了");
+    } catch (err) {
+      sleepRowToggle.checked = !wantSleep;
+      showToast("没成功:" + (err.message || err));
+    }
+    refreshSleepStatus();
+  });
+}
+if (sleepToggleRow) sleepToggleRow.addEventListener("click", (e) => {
+  if (e.target.closest("#sleepRowToggle")) return;
+  if (sleepRowToggle) sleepRowToggle.click();
+});
+
 /* 本地预览便捷:仅 localhost 下,带 #preview-menu 直接亮出 hub 菜单(线上域名不生效,安全) */
 (function(){
   var isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname);
@@ -5245,6 +5311,7 @@ function updateConfigEntryStatus(){
     drivesEntryStatus.textContent = on ? "他的情绪随聊天真实流转" : "已暂停 · 情绪冻结，独处也不会难过";
     if (drivesRowToggle) drivesRowToggle.checked = on;
   }
+  refreshSleepStatus();
 }
 const MCP_TOOLS_CACHE = {};
 let editingApiIndex = null;

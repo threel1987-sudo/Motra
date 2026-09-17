@@ -1324,6 +1324,18 @@ async def app_debug_mcp(request: Request):
     return await loop_json_async("/loop/debug-mcp")
 
 
+@app.get("/app/drives/status")
+async def app_drives_status(request: Request):
+    check_auth(request)
+    return await loop_json_async("/loop/drives/status")
+
+
+@app.post("/app/drives/sleep")
+async def app_drives_sleep(request: Request):
+    check_auth(request)
+    return await loop_json_async("/loop/drives/sleep", method="POST", body=await request.json())
+
+
 @app.get("/app/sessions")
 async def app_sessions(request: Request):
     check_auth(request)

@@ -3058,6 +3058,32 @@ async def loop_config():
     return public_config()
 
 
+@app.get("/loop/drives/status")
+async def loop_drives_status():
+    """PWA 睡眠开关的状态源:返回 Drivesoid 的 sleep 子树。引擎没起/关了情绪,
+    ok=False,前端据此举灰。"""
+    if not drives_enabled():
+        return {"ok": False, "enabled": False, "sleep": {}}
+    sleep = await asyncio.to_thread(_drives_sleep_status)
+    return {"ok": bool(sleep), "enabled": True, "sleep": sleep}
+
+
+@app.post("/loop/drives/sleep")
+async def loop_drives_sleep(request: Request):
+    """PWA 睡眠开关:她手动让他睡/叫他起,不经过模型——第三方 API 挂了也能睡。
+    只接受 start/end;interrupt 是自动唤醒的内部语义,不开放给按钮。"""
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    sleep_type = str(body.get("type") or "").strip()
+    if sleep_type not in ("sleep_start", "sleep_end"):
+        raise HTTPException(status_code=400, detail="type 只接受 sleep_start / sleep_end")
+    if not drives_enabled():
+        raise HTTPException(status_code=409, detail="情绪系统已关闭,先打开它")
+    return await asyncio.to_thread(_drives_set_sleep, sleep_type)
+
+
 @app.post("/loop/config")
 async def loop_config_update(request: Request):
     return update_config(await request.json())
