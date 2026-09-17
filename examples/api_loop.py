@@ -1473,6 +1473,13 @@ def normalize_stream_event(ev: dict[str, Any]) -> dict[str, Any]:
         thinking = delta["reasoning_content"]          # DeepSeek / Qwen / GLM
     elif delta.get("reasoning"):
         thinking = delta["reasoning"]                  # OpenRouter / 部分中转(单数命名)
+    elif isinstance(delta.get("reasoning_details"), list):
+        # OpenRouter / Serein 的 Anthropic 转换层:思考以结构化明细下发,
+        # 每项 {"type":"reasoning.text","text":...}(或 summary/encrypted 变体)。
+        thinking = "".join(
+            str(d.get("text") or d.get("summary") or "")
+            for d in delta["reasoning_details"] if isinstance(d, dict)
+        )
     elif is_thinking_block:
         thinking = delta.get("thinking") or delta.get("content") or ""
     elif delta.get("thinking"):
