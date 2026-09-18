@@ -497,6 +497,8 @@ def injections() -> tuple[bool, list[dict[str, str]]]:
     for e in (inj.get("entries") or []):
         if not isinstance(e, dict):
             continue
+        if e.get("enabled") is False:
+            continue  # 条目级开关:关掉的条目不注入,但保留在配置里
         content = str(e.get("content") or "").strip()
         if not content:
             continue
@@ -1437,7 +1439,8 @@ def public_config() -> dict[str, Any]:
             for i, r in enumerate(main_chain())
         ],
         "mcp_servers": [
-            {"index": i, "name": r["name"], "url": r["url"], "token_masked": mask_key(r["token"]), "enabled": r["enabled"]}
+            {"index": i, "name": r["name"], "url": r["url"], "token_masked": mask_key(r["token"]), "enabled": r["enabled"],
+             "disabled_tools": list(r.get("disabled_tools") or [])}
             for i, r in enumerate(mcp_servers())
         ],
     }
@@ -1491,7 +1494,8 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
                 title = str(e.get("title") or "").strip()
                 content = str(e.get("content") or "").strip()
                 if title or content:
-                    entries.append({"title": title, "content": content})
+                    # 保留每条目的独立开关,否则保存后前端开关全部弹回「开启」
+                    entries.append({"title": title, "content": content, "enabled": bool(e.get("enabled", True))})
             cfg["injections"] = {"enabled": bool(inj.get("enabled")), "entries": entries}
     if isinstance(body.get("main_chain"), list):
         old = main_chain()
@@ -1547,12 +1551,18 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
                 continue
             old_idx = int(item.get("index", pos) or 0)
             prev = old[old_idx] if 0 <= old_idx < len(old) else {}
+            # disabled_tools 按「字段是否存在」合并:传了(哪怕是空数组)就以新值为准,
+            # 用 `or` 回退的话空数组永假,会出现「工具一关就再也开不回来」。
+            if isinstance(item.get("disabled_tools"), list):
+                merged_tools = [str(t) for t in item["disabled_tools"] if str(t).strip()]
+            else:
+                merged_tools = list(prev.get("disabled_tools") or [])
             entry = {
                 "name": str(item.get("name") or prev.get("name") or f"server-{pos + 1}").strip(),
                 "url": str(item.get("url") or prev.get("url") or "").strip().rstrip("/"),
                 "token": str(item.get("token") or prev.get("token") or ""),
                 "enabled": bool(item.get("enabled", prev.get("enabled", True))),
-                "disabled_tools": list(item.get("disabled_tools") or prev.get("disabled_tools") or []),
+                "disabled_tools": merged_tools,
             }
             if not entry["url"]:
                 raise HTTPException(status_code=400, detail=f"MCP row {pos + 1}: url required")

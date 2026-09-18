@@ -1690,50 +1690,7 @@
     width:15px; height:15px; flex:none;
     accent-color: var(--slider-thumb);
   }
-  /* ── 指令注入:条目列表(标题+开关) + 详情编辑 ── */
-  .inject-list{ display:grid; gap:6px; margin:6px 0; }
-  .inject-item{
-    display:flex; align-items:center; gap:10px;
-    border:1px solid var(--card-line); border-radius:14px;
-    background: var(--card-bg); padding:10px 12px;
-    cursor:pointer; transition: background .15s ease;
-  }
-  .inject-item:active{ background: var(--row-press); }
-  .inject-item-toggle{
-    flex:none; width:18px; height:18px; accent-color: var(--accent); cursor:pointer;
-  }
-  .inject-item-title{
-    flex:1; min-width:0; font-size:14px; color:var(--text);
-    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-  }
-  .inject-item-chevron{
-    flex:none; color:var(--text-faint); font-size:16px; line-height:1;
-  }
-  .inject-detail{ display:none; }
-  .inject-detail.active{ display:block; }
-  .inject-detail-head{
-    display:flex; align-items:center; gap:8px; margin-bottom:10px;
-  }
-  .inject-detail-back{
-    flex:none; border:none; background:transparent; color:var(--accent);
-    font-size:20px; line-height:1; padding:4px 8px 4px 0; cursor:pointer;
-  }
-  .inject-detail-title-input{
-    flex:1; min-width:0; padding:8px 10px; border-radius:10px;
-    border:1px solid var(--field-line); background:var(--field-bg);
-    color:var(--text); font:inherit; font-size:14px; outline:none;
-  }
-  .inject-detail-del{
-    flex:none; border:none; background:transparent; color:var(--text-soft);
-    font-size:12px; padding:6px 10px; cursor:pointer; border-radius:8px;
-  }
-  .inject-detail-del:hover{ color:#ff6b6b; background:rgba(255,107,107,.1); }
-  .inject-detail-content{
-    width:100%; min-height:100px; padding:10px 12px; border-radius:12px;
-    border:1px solid var(--field-line); background:var(--field-bg);
-    color:var(--text); font:inherit; font-size:14px; line-height:1.5;
-    outline:none; resize:vertical;
-  }
+  /* ── 指令注入:复用 .api-item 卡片 + .mcp-tool-toggle 开关 + .mcp-icon-btn,无独立样式 ── */
 
   /* ── 空间状态:聊天页顶部胶囊 + 切换浮层 + 房间列表 ── */
   .presence-capsule{
@@ -3118,27 +3075,26 @@
       </section>
 
       <section class="settings-card config-view" id="injectConfigView">
-        <div class="config-view-head"><button class="config-view-back" data-config-back type="button" aria-label="返回连接与工具">‹</button><div class="config-view-title"><strong>指令注入</strong><span>开启后把规则条目注入每次模型请求</span></div></div>
-        <div class="config-fields">
-          <div class="config-field-label">总开关 <i class="info-i" title="开启后，下方所有条目会随每次消息一起注入模型的 system 指令；关闭则不注入（条目保留，可随时再开）。">i</i></div>
+        <div class="config-view-head"><button class="config-view-back" data-config-back type="button" aria-label="返回连接与工具">‹</button><div class="config-view-title"><strong>指令注入</strong><span>开启的条目会随每次消息注入模型</span></div></div>
+        <div class="config-fields" style="margin-bottom:10px">
           <label class="param-auto-row">
             <input id="injectEnabledInput" type="checkbox">
-            <span>注入开启（保存后，对之后的新消息生效）</span>
+            <span>注入总开关 <i class="info-i" title="关掉后一条都不注入（条目保留，随时再开）；开关和条目改动都立即保存，对之后的新消息生效。">i</i></span>
           </label>
-          <div class="config-field-label">规则条目 <i class="info-i" title="每条可独立开关；点标题进入详情编辑内容或删除。内容必填，标题留空则显示「未命名」。">i</i></div>
-          <div id="injectEntriesList" class="inject-list"></div>
-          <button class="config-action ghost" id="injectAddBtn" type="button">＋ 添加条目</button>
-          <!-- 详情编辑视图(点列表项进入) -->
-          <div id="injectDetailView" class="inject-detail">
-            <div class="inject-detail-head">
-              <button class="inject-detail-back" id="injectDetailBackBtn" type="button" aria-label="返回列表">‹</button>
-              <input class="inject-detail-title-input" id="injectDetailTitleInput" type="text" placeholder="条目标题（可选）">
-              <button class="inject-detail-del" id="injectDetailDelBtn" type="button">删除</button>
-            </div>
-            <textarea class="inject-detail-content" id="injectDetailContentInput" placeholder="把要注入的规则 / 背景设定 / 格式要求贴在这里…"></textarea>
-          </div>
         </div>
-        <div class="config-actions"><button class="config-action primary" id="injectSaveBtn" type="button">保存注入包</button></div>
+        <div class="api-list" id="injectEntriesList"></div>
+        <div class="config-actions" id="injectAddRow"><button class="config-action ghost api-add-btn" id="injectAddBtn" type="button">＋ 添加条目</button></div>
+        <div id="injectFormWrap" style="display:none">
+          <div class="edit-banner" id="injectEditBanner" style="margin-top:4px">
+            <span id="injectEditBannerText">添加条目</span>
+            <button type="button" class="config-action ghost" id="injectCancelBtn">取消</button>
+          </div>
+          <div class="config-fields" id="injectFormFields" style="margin-top:4px">
+            <input id="injectTitleInput" type="text" placeholder="条目标题（可选，留空显示「未命名」）" autocomplete="off">
+            <textarea id="injectContentInput" class="config-textarea" rows="4" placeholder="把要注入的规则 / 背景设定 / 格式要求贴在这里…" autocomplete="off" spellcheck="false"></textarea>
+          </div>
+          <div class="config-actions"><button class="config-action primary" id="injectEntrySaveBtn" type="button">添加条目</button></div>
+        </div>
         <div class="push-hint" id="injectConfigHint"></div>
       </section>
 
@@ -3608,7 +3564,7 @@ const openApiConfigBtn = $("#openApiConfigBtn"), openMcpConfigBtn = $("#openMcpC
 const personaConfigView = $("#personaConfigView"), modelParamsConfigView = $("#modelParamsConfigView");
 const personaInput = $("#personaInput"), aiNameInput = $("#aiNameInput"), personaSaveBtn = $("#personaSaveBtn"), personaConfigHint = $("#personaConfigHint");
 const temperatureInput = $("#temperatureInput"), topPInput = $("#topPInput"), historyNInput = $("#historyNInput"), maxTokensInput = $("#maxTokensInput"), maxTokensAutoCheck = $("#maxTokensAutoInput"), modelParamsSaveBtn = $("#modelParamsSaveBtn"), modelParamsConfigHint = $("#modelParamsConfigHint");
-const injectConfigView = $("#injectConfigView"), openInjectConfigBtn = $("#openInjectConfigBtn"), injectEnabledInput = $("#injectEnabledInput"), injectEntriesList = $("#injectEntriesList"), injectAddBtn = $("#injectAddBtn"), injectSaveBtn = $("#injectSaveBtn"), injectConfigHint = $("#injectConfigHint"), injectEntryStatus = $("#injectEntryStatus");
+const injectConfigView = $("#injectConfigView"), openInjectConfigBtn = $("#openInjectConfigBtn"), injectEnabledInput = $("#injectEnabledInput"), injectEntriesList = $("#injectEntriesList"), injectAddBtn = $("#injectAddBtn"), injectConfigHint = $("#injectConfigHint"), injectEntryStatus = $("#injectEntryStatus");
 const proactiveConfigView = $("#proactiveConfigView"), openProactiveConfigBtn = $("#openProactiveConfigBtn"), proactiveEnabledInput = $("#proactiveEnabledInput"), proactiveIdleInput = $("#proactiveIdleInput"), proactiveCooldownInput = $("#proactiveCooldownInput"), proactiveMaxDayInput = $("#proactiveMaxDayInput"), proactiveQuietEnabledInput = $("#proactiveQuietEnabledInput"), proactiveQuietStartInput = $("#proactiveQuietStartInput"), proactiveQuietEndInput = $("#proactiveQuietEndInput"), proactiveTzSelect = $("#proactiveTzSelect"), proactiveSaveBtn = $("#proactiveSaveBtn"), proactiveConfigHint = $("#proactiveConfigHint"), proactiveEntryStatus = $("#proactiveEntryStatus");
 const dataConfigView = $("#dataConfigView"), dataGroupView = $("#dataGroupView");
 const appearanceView = $("#appearanceView"), appearancePreview = $("#appearancePreview");
@@ -5094,67 +5050,134 @@ function applyMaxTokensConfig(value){
     setParamSlider(maxTokensInput, value, "2000");
   }
 }
-/* ── 指令注入:列表(标题+开关) ↔ 详情(编辑/删除) ── */
-let injectEntries = [];       // 当前编辑中的条目副本 [{title,content,enabled}]
-let injectDetailIndex = null; // 详情视图正在编辑的索引,null=列表模式
-const injectDetailView = $("#injectDetailView"), injectDetailBackBtn = $("#injectDetailBackBtn"),
-      injectDetailTitleInput = $("#injectDetailTitleInput"), injectDetailDelBtn = $("#injectDetailDelBtn"),
-      injectDetailContentInput = $("#injectDetailContentInput");
+/* ── 指令注入:卡片列表 + 内联表单(与「AI API」页同一套交互),所有改动即时保存 ── */
+let injectEntries = [];          // 当前条目 [{title,content,enabled}],改动即整体提交
+let editingInjectIndex = null;   // 表单正在编辑的条目索引,null=添加模式
+let injectFormKeepClosed = false;// 点过「取消」后,空列表不再自动弹表单
+const injectFormWrap = $("#injectFormWrap"), injectAddRow = $("#injectAddRow"),
+      injectEditBannerText = $("#injectEditBannerText"), injectCancelBtn = $("#injectCancelBtn"),
+      injectTitleInput = $("#injectTitleInput"), injectContentInput = $("#injectContentInput"),
+      injectEntrySaveBtn = $("#injectEntrySaveBtn");
 
-function injectItemElement(entry, idx){
-  const item = document.createElement("div");
-  item.className = "inject-item";
-  item.dataset.idx = idx;
-  const toggle = document.createElement("input");
-  toggle.type = "checkbox";
-  toggle.className = "inject-item-toggle";
-  toggle.checked = entry.enabled !== false;
-  toggle.addEventListener("click", (e) => e.stopPropagation());
-  toggle.addEventListener("change", () => { entry.enabled = toggle.checked; });
-  const title = document.createElement("span");
-  title.className = "inject-item-title";
-  title.textContent = (entry.title || "").trim() || "未命名";
-  const chev = document.createElement("span");
-  chev.className = "inject-item-chevron";
-  chev.textContent = "›";
-  item.append(toggle, title, chev);
-  item.addEventListener("click", () => openInjectDetail(idx));
-  return item;
+function openInjectForm(){
+  if (injectFormWrap) injectFormWrap.style.display = "";
+  if (injectAddRow) injectAddRow.style.display = "none";
+}
+function closeInjectForm(){
+  if (injectFormWrap) injectFormWrap.style.display = "none";
+  if (injectAddRow) injectAddRow.style.display = "";
+}
+function resetInjectForm(){
+  editingInjectIndex = null;
+  if (injectTitleInput) injectTitleInput.value = "";
+  if (injectContentInput) injectContentInput.value = "";
+  if (injectEntrySaveBtn) injectEntrySaveBtn.textContent = "添加条目";
+  closeInjectForm();
+}
+/* 过滤空条目后整体提交;成功后把过滤结果写回本地,避免索引漂移 */
+async function saveInjections(){
+  const entries = injectEntries
+    .filter(e => (e.title || "").trim() || (e.content || "").trim())
+    .map(e => ({ title: (e.title || "").trim(), content: e.content || "", enabled: e.enabled !== false }));
+  const enabled = !!injectEnabledInput?.checked;
+  const ok = await saveLoopConfig({ injections: { enabled, entries } }, injectConfigHint);
+  if (ok){
+    injectEntries = entries;
+    updateInjectEntryStatus(enabled, entries.length);
+  }
+  return ok;
 }
 function renderInjectEntries(){
   if (!injectEntriesList) return;
   injectEntriesList.textContent = "";
-  injectEntries.forEach((entry, idx) => injectEntriesList.appendChild(injectItemElement(entry, idx)));
+  injectEntries.forEach((entry, idx) => {
+    const item = document.createElement("div");
+    item.className = "api-item";
+    if (editingInjectIndex === idx) item.classList.add("editing");
+
+    const head = document.createElement("div");
+    head.className = "api-item-head";
+
+    const meta = document.createElement("div");
+    meta.className = "api-item-meta";
+    const name = document.createElement("strong");
+    name.className = "api-item-name";
+    name.textContent = (entry.title || "").trim() || "未命名";
+    meta.appendChild(name);
+    const preview = (entry.content || "").trim();
+    if (preview){
+      const sub = document.createElement("div");
+      sub.className = "api-item-url";
+      sub.textContent = preview;
+      meta.appendChild(sub);
+    }
+
+    const actions = document.createElement("div");
+    actions.className = "api-item-actions";
+
+    // 条目级开关(与 MCP 工具同款小 switch):拨动即保存生效
+    const toggleLabel = document.createElement("label");
+    toggleLabel.className = "mcp-tool-toggle";
+    toggleLabel.title = entry.enabled !== false ? "已启用，点击停用" : "已停用，点击启用";
+    const toggleInput = document.createElement("input");
+    toggleInput.type = "checkbox";
+    toggleInput.checked = entry.enabled !== false;
+    const track = document.createElement("span");
+    track.className = "mcp-tool-toggle-track";
+    const thumb = document.createElement("span");
+    thumb.className = "mcp-tool-toggle-thumb";
+    track.appendChild(thumb);
+    toggleLabel.append(toggleInput, track);
+    toggleInput.addEventListener("change", async () => {
+      entry.enabled = toggleInput.checked;
+      const ok = await saveInjections();
+      if (!ok){ entry.enabled = !toggleInput.checked; toggleInput.checked = entry.enabled; }
+    });
+
+    const edit = document.createElement("button");
+    edit.className = "mcp-icon-btn";
+    edit.type = "button";
+    edit.title = "编辑";
+    edit.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8.5 1.5l2 2L3 11H1V9L8.5 1.5z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>`;
+    edit.addEventListener("click", () => {
+      editingInjectIndex = idx;
+      if (injectTitleInput) injectTitleInput.value = entry.title || "";
+      if (injectContentInput) injectContentInput.value = entry.content || "";
+      if (injectEntrySaveBtn) injectEntrySaveBtn.textContent = "保存修改";
+      if (injectEditBannerText) injectEditBannerText.textContent = `正在编辑：${(entry.title || "").trim() || "未命名"}`;
+      openInjectForm();
+      renderInjectEntries();
+      if (injectFormFields) injectFormFields.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+
+    const remove = document.createElement("button");
+    remove.className = "mcp-icon-btn danger";
+    remove.type = "button";
+    remove.title = "删除";
+    remove.innerHTML = `<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M2 3h8M5 3V2h2v1M4.5 3v6M7.5 3v6M3 3l.5 7h5L9 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    remove.addEventListener("click", async () => {
+      if (!confirm(`确定删除条目「${(entry.title || "").trim() || "未命名"}」吗？`)) return;
+      injectEntries.splice(idx, 1);
+      if (editingInjectIndex === idx) resetInjectForm();
+      await saveInjections();
+      renderInjectEntries();
+    });
+
+    actions.append(toggleLabel, edit, remove);
+    head.append(meta, actions);
+    item.appendChild(head);
+    injectEntriesList.appendChild(item);
+  });
+  // 和 API/MCP 页一致:一条都没有时自动展开表单引导添加
+  if (!injectEntries.length && !injectFormKeepClosed) openInjectForm();
 }
-function openInjectDetail(idx){
-  injectDetailIndex = idx;
-  const entry = injectEntries[idx];
-  if (!entry) return;
-  injectDetailTitleInput.value = entry.title || "";
-  injectDetailContentInput.value = entry.content || "";
-  injectEntriesList.style.display = "none";
-  injectAddBtn.style.display = "none";
-  injectDetailView.classList.add("active");
+function flashInjectItem(position){
+  const el = injectEntriesList && injectEntriesList.children[position];
+  if (!el) return;
+  el.classList.add("flash");
+  el.scrollIntoView({ behavior:"smooth", block:"nearest" });
+  setTimeout(() => el.classList.remove("flash"), 1300);
 }
-function closeInjectDetail(){
-  // 返回前把详情里的修改写回数组
-  if (injectDetailIndex !== null && injectEntries[injectDetailIndex]){
-    injectEntries[injectDetailIndex].title = injectDetailTitleInput.value.trim();
-    injectEntries[injectDetailIndex].content = injectDetailContentInput.value;
-  }
-  injectDetailIndex = null;
-  injectDetailView.classList.remove("active");
-  injectEntriesList.style.display = "";
-  injectAddBtn.style.display = "";
-  renderInjectEntries();
-}
-injectDetailBackBtn?.addEventListener("click", closeInjectDetail);
-injectDetailDelBtn?.addEventListener("click", () => {
-  if (injectDetailIndex !== null){
-    injectEntries.splice(injectDetailIndex, 1);
-  }
-  closeInjectDetail();
-});
 function updateInjectEntryStatus(enabled, count){
   if (!injectEntryStatus) return;
   const on = injectEntries.filter(e => e.enabled !== false).length;
@@ -5168,7 +5191,7 @@ async function loadInjectConfig(){
     const inj = cfg.injections || {};
     if (injectEnabledInput) injectEnabledInput.checked = !!inj.enabled;
     injectEntries = (inj.entries || []).map(e => ({ title: e.title || "", content: e.content || "", enabled: e.enabled !== false }));
-    closeInjectDetail(); // 重置到列表模式
+    resetInjectForm();
     renderInjectEntries();
     updateInjectEntryStatus(!!inj.enabled, injectEntries.length);
   }catch{}
@@ -5314,6 +5337,7 @@ function updateConfigEntryStatus(){
   refreshSleepStatus();
 }
 const MCP_TOOLS_CACHE = {};
+const mcpOpenPositions = new Set();   // 记住展开中的服务:保存配置后列表整体重渲染,面板不该塌回去
 let editingApiIndex = null;
 function renderApiList(){
   if (!apiList) return;
@@ -5480,6 +5504,7 @@ function renderMcpList(){
       if (e.target.closest("button[data-mcp-action]")) return;
       const wasOpen = item.classList.contains("open");
       item.classList.toggle("open", !wasOpen);
+      if (wasOpen) mcpOpenPositions.delete(position); else mcpOpenPositions.add(position);
       if (!wasOpen && server.url) {
         if (server.enabled === false) {
           // 停用中的服务后端不会去问它要工具列表,别用「暂无可用工具」误导
@@ -5513,6 +5538,15 @@ function renderMcpList(){
 
     item.append(head, toolsPanel);
     mcpList.appendChild(item);
+    // 保存配置会触发整表重渲染:恢复之前展开的面板(工具列表走缓存,不重新请求)
+    if (mcpOpenPositions.has(position)) {
+      item.classList.add("open");
+      if (server.enabled === false) {
+        toolsLoading.textContent = "该服务已停用——点右上角启用后,再展开就能看到工具列表。";
+      } else if (MCP_TOOLS_CACHE[server.url]) {
+        renderToolsList(toolsPanel, MCP_TOOLS_CACHE[server.url], server, position);
+      }
+    }
   });
   // 和 API 页一致:一个服务都没有时自动展开表单引导添加
   if (!servers.length && !mcpFormKeepClosed) {
@@ -5907,25 +5941,37 @@ clearCacheBtn?.addEventListener("click", async () => {
   setTimeout(() => location.reload(), 600);
 });
 injectAddBtn?.addEventListener("click", () => {
-  injectEntries.push({ title: "", content: "", enabled: true });
+  resetInjectForm();
+  if (injectEditBannerText) injectEditBannerText.textContent = "添加条目";
+  openInjectForm();
+  if (injectFormFields) injectFormFields.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  injectTitleInput?.focus();
+});
+injectCancelBtn?.addEventListener("click", () => {
+  injectFormKeepClosed = true;
+  resetInjectForm();
   renderInjectEntries();
-  openInjectDetail(injectEntries.length - 1);
-  injectDetailTitleInput?.focus();
+  if (injectConfigHint) injectConfigHint.textContent = "";
 });
-injectSaveBtn?.addEventListener("click", async () => {
-  const hint = injectConfigHint;
-  const enabled = !!injectEnabledInput?.checked;
-  // 若正在详情里编辑,先写回数组
-  if (injectDetailIndex !== null && injectEntries[injectDetailIndex]){
-    injectEntries[injectDetailIndex].title = injectDetailTitleInput.value.trim();
-    injectEntries[injectDetailIndex].content = injectDetailContentInput.value;
+injectEntrySaveBtn?.addEventListener("click", async () => {
+  const title = injectTitleInput ? injectTitleInput.value.trim() : "";
+  const content = injectContentInput ? injectContentInput.value : "";
+  if (!content.trim()){
+    if (injectConfigHint) injectConfigHint.textContent = "内容不能为空——没有内容的条目注入不了任何东西";
+    return;
   }
-  const entries = injectEntries
-    .filter(e => (e.title || "").trim() || (e.content || "").trim())
-    .map(e => ({ title: e.title, content: e.content, enabled: e.enabled }));
-  const ok = await saveLoopConfig({ injections: { enabled, entries } }, hint);
-  if (ok) updateInjectEntryStatus(enabled, entries.length);
+  const editing = editingInjectIndex !== null && injectEntries[editingInjectIndex];
+  const entry = { title, content, enabled: editing ? injectEntries[editingInjectIndex].enabled !== false : true };
+  if (editing) injectEntries[editingInjectIndex] = entry; else injectEntries.push(entry);
+  const savedPos = editing ? editingInjectIndex : injectEntries.length - 1;
+  const ok = await saveInjections();
+  if (ok){
+    resetInjectForm();
+    renderInjectEntries();
+    flashInjectItem(savedPos);
+  }
 });
+injectEnabledInput?.addEventListener("change", () => saveInjections());
 
 /* ════════ 空间与房间（presence / rooms） ════════ */
 const SCENARIO_META = {
@@ -6375,6 +6421,7 @@ if (mcpList) mcpList.addEventListener("click", event => {
     openMcpForm();
     mcpUrlInput.focus();
   }else if (button.dataset.mcpAction === "delete"){
+    mcpOpenPositions.clear();   // 删除后剩余服务 position 全部前移,展开状态作废
     saveLoopConfig({ mcp_servers: mcpPayload(servers.filter((_, index) => index !== position)) }, mcpConfigHint);
   }else if (button.dataset.mcpAction === "toggle"){
     servers[position] = { ...server, enabled: server.enabled === false };
