@@ -2159,6 +2159,7 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                 saw_finish = False
                 restart_count = 0
                 finish_count = 0   # 本条流里 finish_reason 出现次数(>1 = 网关一条流里跑了多代)
+                last_finish_reason = ""   # 最后一代的 finish_reason;length/max_tokens = 输出被截断
                 usage_count = 0    # usage 帧出现次数(>1 = 多代各自计费的可能性大)
                 _t_first = None    # 首个 SSE data 帧到达时刻:网关首块延迟(含它的召回+上游 prefill)
                 async for line in resp.aiter_lines():
@@ -2210,6 +2211,7 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                         usage = {}
                         raw_msg = {}
                         saw_finish = False
+                        last_finish_reason = ""
                         print(f"[api_loop:stream] mid-stream generation restart detected (#{restart_count}); dropping earlier partial output", flush=True)
                         if on_restart:
                             try:
@@ -2218,6 +2220,7 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                                 pass
                     if n["finish_reason"]:
                         saw_finish = True
+                        last_finish_reason = str(n["finish_reason"])
                         finish_count += 1
                     if n["usage"]:
                         usage = n["usage"]
@@ -2271,9 +2274,18 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
     print(
         f"[api_loop:chat] ✓ done model={route.get('model')} text_len={len(final_text)} "
         f"thinking_len={len(''.join(thinking_parts))} tool_calls={len(tool_calls_parsed)} "
-        f"restarts={restart_count} finishes={finish_count} usage_frames={usage_count} usage={usage}",
+        f"restarts={restart_count} finishes={finish_count} finish={last_finish_reason or '?'} usage_frames={usage_count} usage={usage}",
         flush=True,
     )
+    if last_finish_reason in ("length", "max_tokens"):
+        # 输出撞上限被截断。usage.output_tokens ≈ 实际顶到的上限:
+        # mt 有值 → 是我们自己传的,调大或改自动;mt 为空 → 上游网关/模型自己的输出帽。
+        print(
+            f"[api_loop:truncated] ⚠ 回复被截断:model={route.get('model')} "
+            f"output_tokens={usage.get('output_tokens')} input_tokens={usage.get('input_tokens')} "
+            f"max_tokens设置={mt if mt is not None else '自动(未传)'}",
+            flush=True,
+        )
     return {
         "text": final_text,
         "message": raw_msg,
