@@ -3102,10 +3102,7 @@ async def loop_drives_status():
     if not drives_enabled():
         return {"ok": False, "enabled": False, "sleep": {}}
     sleep = await asyncio.to_thread(_drives_sleep_status)
-    return {"ok": bool(sleep), "enabled": True, "sleep": sleep}
-
-
-@app.post("/loop/drives/sleep")
+    return {"ok": bool(sleep), "enabled": True, "sleep": sleep}@app.post("/loop/drives/sleep")
 async def loop_drives_sleep(request: Request):
     """PWA 睡眠开关:她手动让他睡/叫他起,不经过模型——第三方 API 挂了也能睡。
     只接受 start/end;interrupt 是自动唤醒的内部语义,不开放给按钮。"""
