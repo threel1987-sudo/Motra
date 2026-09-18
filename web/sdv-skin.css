@@ -343,7 +343,7 @@ html[data-theme="sdv"] .app-tile[data-menu="period"]   .app-icon{ background-ima
 html[data-theme="sdv"] .app-tile[data-menu="cat"]      .app-icon{ background-image: url("assets/sdv/icon_cat.png"); }
 html[data-theme="sdv"] .app-tile[data-menu="fridge"]   .app-icon{ background-image: url("assets/sdv/icon_fridge.png"); }
 html[data-theme="sdv"] .app-tile[data-menu="memory"]   .app-icon{ background-image: url("assets/sdv/icon_memory.png"); }
-html[data-theme="sdv"] .app-tile[data-menu="tides"]    .app-icon{ background-image: url("assets/sdv/icon_tides.png"); }
+html[data-theme="sdv"] .app-tile[data-menu="state"]    .app-icon{ background-image: url("assets/sdv/icon_state.png"); }
 html[data-theme="sdv"] .app-tile[data-menu="settings"] .app-icon{ background-image: url("assets/sdv/icon_settings.png"); }
 html[data-theme="sdv"] .app-tile:active .app-icon{
   transform: translateY(3px);
