@@ -3102,7 +3102,39 @@ async def loop_drives_status():
     if not drives_enabled():
         return {"ok": False, "enabled": False, "sleep": {}}
     sleep = await asyncio.to_thread(_drives_sleep_status)
-    return {"ok": bool(sleep), "enabled": True, "sleep": sleep}@app.post("/loop/drives/sleep")
+    return {"ok": bool(sleep), "enabled": True, "sleep": sleep}
+
+
+@app.get("/loop/state-view")
+async def loop_state_view():
+    """PWA「状态」页的数据源:Drivesoid 情绪 16 维 + Eventide 身体 7 项,只读展示。
+    顺手 tick 一次身体引擎(按真实时间追平涨落),和每轮消息注入前做的事一样。"""
+    out: dict[str, Any] = {
+        "ok": True,
+        "drives_enabled": drives_enabled(),
+        "eventide_enabled": eventide_enabled(),
+        "drives": None,
+        "eventide": None,
+    }
+    if drives_enabled():
+        raw = await asyncio.to_thread(_drives_call, "GET", "/api/drives/status", None, 4.0)
+        try:
+            out["drives"] = json.loads(raw) if raw else None
+        except Exception:
+            out["drives"] = None
+    if eventide_enabled():
+        try:
+            state = _eventide_load()
+            now = dt.datetime.now(dt.timezone.utc)
+            _EVENTIDE_RUNTIME.tick_and_render(state, now, last_counterpart_message_at=None)
+            _eventide_save()
+            out["eventide"] = {"state": _EVENTIDE_RUNTIME.dump_state(state)}
+        except Exception as exc:
+            print(f"[eventide] state-view failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+    return out
+
+
+@app.post("/loop/drives/sleep")
 async def loop_drives_sleep(request: Request):
     """PWA 睡眠开关:她手动让他睡/叫他起,不经过模型——第三方 API 挂了也能睡。
     只接受 start/end;interrupt 是自动唤醒的内部语义,不开放给按钮。"""

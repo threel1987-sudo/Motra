@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
+<title>状态 · His Pulse</title>
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/400.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/500.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/400.min.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/500.min.css" rel="stylesheet">
+<link rel="preload" href="assets/sdv/bg_title.png" as="image">
+<meta name="theme-color" content="#f8f3ed">
+
+<script>
+  /* Motra — dark glassmorphism theme (single preset). */
+  (function(){ document.documentElement.setAttribute("data-theme","tide"); })();
+</script>
+
+<style>
+/* ───────── Motra · dark glassmorphism (shared with the PWA) ───────── */
+:root{
+  --font-en:"FusionPixel","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+  --font-cn:"FusionPixel","Noto Sans SC","PingFang SC","Microsoft YaHei",system-ui,sans-serif;
+
+  --bg:#f8f3ed;
+  --wall:url("assets/sdv/bg_title.png");
+  --text:#3a2b22;
+  --text-soft:#6b5346;
+  --text-faint:#9a7f6e;
+  --accent:#c2587c;
+  --accent-deep:#c2587c;
+  --accent-fg:#fff8ee;
+  --hairline:rgba(91,63,63,.28);
+  --field-bg:#f8f3ed;
+  --field-line:#5b3f3f;
+  --sheet-bg:#f8f3ed;
+  --sheet-line:#5b3f3f;
+  --sheet-hi:rgba(255,255,255,.5);
+  --sheet-scrim:rgba(60,42,32,.45);
+  --shadow:6px 6px 0 rgba(60,42,32,.18);
+  --soft-shadow:4px 4px 0 rgba(60,42,32,.12);
+  --scrim:linear-gradient(180deg,rgba(248,243,237,.30) 0%,rgba(248,243,237,.18) 30%,rgba(248,243,237,.22) 68%,rgba(248,243,237,.42) 100%);
+  --danger:#b8433a;
+  /* 状态页专用 */
+  --warm:#A4643A;
+  --mind:#B05A78;
+  --body:#B07258;
+}
+
+*{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body{ margin:0; padding:0; }
+body{
+  background:var(--bg); color:var(--text);
+  font-family:var(--font-cn); font-size:15px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+  min-height:100vh; overflow-x:hidden;
+}
+.wall{ position:fixed; inset:0; z-index:-2; background:var(--bg) var(--wall) center/cover no-repeat; }
+.wall::after{ content:""; position:absolute; inset:0; background:var(--scrim); }
+button{ font:inherit; color:inherit; cursor:pointer; border:none; background:none; }
+.hidden{ display:none !important; }
+
+.glass{ background:var(--field-bg); border:1px solid var(--field-line);
+  box-shadow:var(--soft-shadow), inset 0 1px 0 var(--sheet-hi);
+  -webkit-backdrop-filter:blur(16px) saturate(1.25); backdrop-filter:blur(16px) saturate(1.25); }
+
+/* ───────── 顶栏 ───────── */
+.bar{
+  position:sticky; top:0; z-index:30; display:flex; align-items:flex-start; gap:6px;
+  padding:calc(8px + env(safe-area-inset-top)) clamp(16px,5vw,28px) 4px;
+  background:linear-gradient(180deg,rgba(5,13,20,.72),rgba(5,13,20,0));
+  -webkit-backdrop-filter:blur(12px) saturate(1.15); backdrop-filter:blur(12px) saturate(1.15);
+}
+.bar .icon{ width:36px; height:36px; margin-top:-3px; margin-left:-7px; display:grid; place-items:center;
+  border-radius:50%; color:var(--text-soft); transition:background .2s; }
+.bar .icon:active{ background:var(--hairline); }
+.bar .icon svg{ width:22px; height:22px; }
+.bar .grow{ flex:1; }
+.top-label{ font-family:var(--font-en); font-size:10.5px; letter-spacing:.32em; text-align:right;
+  color:var(--text-faint); text-transform:uppercase; line-height:1.5; padding-top:2px; }
+.top-label .rule{ display:block; width:100%; height:1px; margin-top:3px;
+  background:linear-gradient(90deg,transparent,var(--text-faint)); }
+
+/* ───────── 布局 ───────── */
+.wrap{ max-width:560px; margin:0 auto; padding:6px clamp(16px,5vw,28px) calc(30px + env(safe-area-inset-bottom)); }
+.hero{ text-align:center; padding:26px 0 18px; }
+.hero h1{ font-family:var(--font-en); font-weight:500; font-style:italic; font-size:clamp(30px,8vw,40px);
+  letter-spacing:.01em; margin:0; }
+.hero .sub{ font-family:var(--font-en); font-style:italic; font-size:13px; color:var(--text-faint); margin-top:5px; }
+
+/* ───────── 数值卡 ───────── */
+.card{ border-radius:26px; padding:20px 18px 16px; margin-bottom:16px; animation:sheetIn .4s cubic-bezier(.22,1,.36,1) both; }
+.card h2{ margin:0 0 2px; font-size:16px; font-weight:600; }
+.card .csub{ font-size:11.5px; color:var(--text-faint); margin-bottom:12px; }
+
+.barrow{ display:flex; align-items:center; gap:10px; padding:5px 0; }
+.barrow .name{ flex:0 0 4.2em; font-size:13px; color:var(--text-soft); }
+.barrow .track{ flex:1; height:8px; border-radius:4px; background:rgba(91,63,63,.14); overflow:hidden; }
+.barrow .fill{ height:100%; border-radius:4px; transition:width .45s ease; }
+.card.mind .fill{ background:var(--mind); }
+.card.body .fill{ background:var(--body); }
+.barrow .num{ flex:0 0 3.2em; text-align:right; font-size:12.5px; color:var(--text);
+  font-family:var(--font-en),var(--font-cn); }
+.barrow .delta{ flex:0 0 1em; font-size:11px; line-height:1; }
+.barrow .delta.up{ color:#b8433a; }
+.barrow .delta.down{ color:#3B9A78; }
+
+.chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:12px; }
+.chip{ font-size:12px; color:var(--text-soft); background:rgba(255,255,255,.08);
+  border:1px solid var(--hairline); border-radius:20px; padding:4px 12px; }
+
+.note{ font-size:12.5px; color:var(--text-faint); text-align:center; padding:10px 6px; line-height:1.8; }
+.hint{ text-align:center; font-size:12px; color:var(--text-faint); margin:6px 0 2px; }
+
+/* gate 门 */
+.gatebox{ background:var(--sheet-bg); border:1px solid var(--sheet-line); border-radius:22px; padding:22px 20px;
+  box-shadow:var(--shadow), inset 0 1px 0 var(--sheet-hi); -webkit-backdrop-filter:blur(20px); backdrop-filter:blur(20px); margin-top:8px; }
+.gatebox p{ font-size:13px; color:var(--text-soft); text-align:center; margin:0 0 14px; line-height:1.6; }
+.gatebox input{ width:100%; padding:11px 14px; border:1px solid var(--field-line); border-radius:12px;
+  background:var(--field-bg); color:var(--text); font-family:var(--font-cn); font-size:14px; outline:none; }
+.gatebox .row{ display:flex; gap:10px; margin-top:14px; }
+.gatebox .row button{ flex:1; padding:12px; border-radius:13px; font-size:14px; transition:transform .15s; }
+.gatebox .row button:active{ transform:scale(.96); }
+.gatebox .row .ghost{ background:var(--field-bg); border:1px solid var(--field-line); color:var(--text-soft); }
+.gatebox .row .send{ background:var(--accent-deep); color:var(--accent-fg); }
+
+/* 动画 */
+@keyframes sheetIn{ from{ opacity:0; transform:translateY(20px) scale(.97); } }
+@media (prefers-reduced-motion:reduce){ *{ animation:none !important; transition:none !important; } }
+
+/* ═══ SDV 像素皮肤覆盖(与主 app / 猫咪 / 冰箱同族) ═══ */
+@font-face{ font-family:"FusionPixel"; src:url("fonts/fusion-pixel-zh.woff2") format("woff2"); font-display:swap;
+  unicode-range: U+0000-00FF, U+2000-206F, U+3000-303F, U+3400-4DBF, U+4E00-9FFF, U+F900-FAFF, U+FF00-FFEF; }
+.wall{ image-rendering:pixelated; }
+.bar{ background:linear-gradient(180deg,rgba(248,243,237,.88),rgba(248,243,237,0)); -webkit-backdrop-filter:none; backdrop-filter:none; }
+.bar .icon{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:10px; box-shadow:3px 3px 0 rgba(60,42,32,.20); color:#3a2b22; }
+.bar .icon:active{ background:#efe4d6; }
+.top-label{ color:#9a7f6e; }
+.hero h1{ color:#3a2b22; font-style:normal; text-shadow:2px 2px 0 rgba(91,63,63,.18); }
+.hero .sub{ font-style:normal; }
+.glass{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:14px;
+  box-shadow:4px 4px 0 rgba(60,42,32,.16); -webkit-backdrop-filter:none; backdrop-filter:none; }
+.barrow .track{ background:rgba(91,63,63,.16); border-radius:3px; }
+.barrow .fill{ border-radius:3px; }
+.chip{ background:#fffaf2; border:2px solid rgba(91,63,63,.30); color:var(--text-soft); }
+.gatebox{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:14px;
+  box-shadow:5px 5px 0 rgba(60,42,32,.22); -webkit-backdrop-filter:none; backdrop-filter:none; }
+.gatebox input{ background:url("assets/sdv/bar_input.png") center/100% 100% no-repeat; border:none; border-radius:3px;
+  color:#3a2b22; padding:11px 16px; }
+.gatebox .row .send{ background:#c2587c; color:#fff8ee; border:3px solid #5b3f3f; border-radius:8px; box-shadow:0 3px 0 #5b3f3f; }
+.gatebox .row .ghost{ background:#f8f3ed; border:3px solid #5b3f3f; border-radius:8px; color:#3a2b22; box-shadow:0 3px 0 #5b3f3f; }
+.gatebox .row button:active{ transform:translateY(2px); box-shadow:0 1px 0 #5b3f3f; }
+</style>
+</head>
+<body>
+<div class="wall"></div>
+
+<!-- 顶栏 -->
+<div class="bar">
+  <button class="icon" id="topBack" title="返回">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+  </button>
+  <button class="icon" id="refreshBtn" title="刷新" style="margin-left:0">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5"/></svg>
+  </button>
+  <span class="grow"></span>
+  <div class="top-label">HIS<br>PULSE<span class="rule"></span></div>
+</div>
+
+<!-- ════════ 主页 ════════ -->
+<div class="wrap" id="mainView">
+  <div class="hero">
+    <h1>他的状态</h1>
+    <div class="sub">his pulse, in real time</div>
+  </div>
+
+  <!-- 情绪(Drivesoid) -->
+  <div class="card mind glass" id="mindCard">
+    <h2>情绪</h2>
+    <div class="csub" id="mindSub">Drivesoid 情绪引擎 · 0–100</div>
+    <div id="mindBars"></div>
+    <div class="chips" id="mindChips"></div>
+  </div>
+
+  <!-- 身体(Eventide) -->
+  <div class="card body glass" id="bodyCard">
+    <h2>身体</h2>
+    <div class="csub" id="bodySub">Eventide 身体引擎 · 0–100</div>
+    <div id="bodyBars"></div>
+    <div class="chips" id="bodyChips"></div>
+  </div>
+
+  <div class="hint" id="liveHint"></div>
+  <div class="hint hidden" id="errLine" style="color:var(--danger)"></div>
+</div>
+
+<!-- ════════ token 门 ════════ -->
+<div class="wrap gate hidden" id="gateView">
+  <div class="hero" style="padding-top:40px"><h1>他的状态</h1><div class="sub">his pulse, in real time</div></div>
+  <div class="gatebox">
+    <p>没读到访问密钥——先在主页登录，或在此粘贴密钥（与 PWA 同一个）。</p>
+    <input type="text" id="gateInput" placeholder="访问密钥">
+    <p class="hidden" id="gateErr" style="color:var(--danger);font-size:12.5px;text-align:center;margin:10px 0 0"></p>
+    <div class="row">
+      <button class="ghost" id="gateHome">去主页</button>
+      <button class="send" id="gateSave">保存并进入</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ─────────────────────────────────────────────────────────────
+   His Pulse — 他的情绪与身体实时数值。
+   数据:loop /loop/state-view(经 relay /app/state-view 代理):
+   · drives  = Drivesoid /api/drives/status 全树(16 维 display,0..1)
+   · eventide = Eventide dump_state(7 项 values,0..100)
+   ───────────────────────────────────────────────────────────── */
+const API_BASE="/relay";
+const LS_KEY="companion_secret";
+let secret=localStorage.getItem(LS_KEY)||"";
+
+const $=(id)=>document.getElementById(id);
+function authHeaders(extra){ return Object.assign({"Authorization":"Bearer "+secret}, extra||{}); }
+function esc(s){ return String(s==null?"":s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+async function api(path,opts){
+  const o=Object.assign({}, opts||{}, {headers:authHeaders((opts&&opts.headers)||{})});
+  const r=await fetch(API_BASE+path, o);
+  if(r.status===401){
+    secret=""; localStorage.removeItem(LS_KEY);
+    const g=$("gateErr"); if(g){ g.textContent="密钥没通过验证——重新输入正确的密钥再试。"; g.classList.remove("hidden"); }
+    show("gate"); throw new Error("401");
+  }
+  if(!r.ok){ let d=""; try{ d=(await r.json()).detail; }catch(_){ } throw new Error(d||("HTTP "+r.status)); }
+  return r;
+}
+
+function show(name){
+  $("mainView").classList.toggle("hidden", name!=="main");
+  $("gateView").classList.toggle("hidden", name!=="gate");
+  window.scrollTo(0,0);
+}
+
+/* ── 中文名映射 ── */
+const DIM_NAMES={
+  vitality:"活力", fatigue:"疲惫", longing:"思念", intimacy:"亲密",
+  possessiveness:"占有欲", lust:"情欲", jealousy:"嫉妒", anxiety:"焦虑",
+  protectiveness:"保护欲", fear:"不安", contentment:"满足", elation:"雀跃",
+  seeking:"期待", play:"玩心", dejection:"低落", irritability:"烦躁",
+};
+const BODY_NAMES={
+  heat:"热度", pressure:"压抑感", control:"控制力", sensitivity:"敏感度",
+  reserve:"蓄积感", possessiveness:"占有欲", fatigue:"疲惫感",
+};
+const CYCLE_NAMES={ stable:"平稳期", building:"蓄积期", preheat:"预兆期", sensitive:"易感期", ebb:"退潮期", recovery:"恢复期" };
+const EVENT_NAMES={
+  morning_arousal:"晨间反应", night_heat:"深夜热潮", cycle_surge:"周期热涌",
+  holding_back:"硬撑", demanding:"索取欲", marking_impulse:"占有 / 标记冲动",
+  nesting:"筑巢冲动", scent_aftereffect:"气味残留", voice_or_name_trigger:"声音 / 称呼触发",
+  dream_afterglow:"梦后余温", control_slip:"控制力下滑", closeness_hunger:"贴近饥饿",
+  pheromone_disorder:"信息素紊乱", delayed_heat:"迟发热", low_fever_cling:"低烧黏连",
+  waiting_restless:"等待焦躁", restraint_rebound:"克制反弹", strange_calm:"反常平静",
+};
+
+/* ── 渲染 ── */
+function barRow(name, val, delta){
+  const pct=Math.max(0, Math.min(100, Math.round(val)));
+  let d="";
+  if(delta!=null && Math.abs(delta)>=2){
+    d=`<span class="delta ${delta>0?"up":"down"}">${delta>0?"↑":"↓"}</span>`;
+  }else{
+    d=`<span class="delta"></span>`;
+  }
+  return `<div class="barrow"><span class="name">${esc(name)}</span>`
+    + `<span class="track"><span class="fill" style="width:${pct}%"></span></span>`
+    + `<span class="num">${pct}</span>${d}</div>`;
+}
+
+function render(d){
+  /* ── 情绪(Drivesoid) ── */
+  const mindBars=$("mindBars"), mindChips=$("mindChips");
+  if(!d.drives_enabled){
+    mindBars.innerHTML=`<div class="note">情绪引擎已暂停（设置里「情绪与身体」关着）</div>`;
+    mindChips.innerHTML="";
+  }else if(!d.drives || d.drives.error && !d.drives.display){
+    mindBars.innerHTML=`<div class="note">情绪引擎暂时没连上</div>`;
+    mindChips.innerHTML="";
+  }else{
+    const disp=d.drives.display||{};
+    const prev=d.drives.prev||{};
+    mindBars.innerHTML=Object.keys(DIM_NAMES).map(k=>{
+      const v=disp[k];
+      if(typeof v!=="number") return "";
+      const p=(typeof prev[k]==="number")?Math.round((v-prev[k])*100):null;
+      return barRow(DIM_NAMES[k], v*100, p);
+    }).join("");
+    const chips=[];
+    const sl=d.drives.sleep||{};
+    if(sl.status==="asleep") chips.push("睡眠 · 睡着中");
+    else if(sl.status==="interrupted") chips.push("睡眠 · 半夜被吵醒");
+    if(d.drives.whim && d.drives.whim.active) chips.push("心血来潮 · "+(d.drives.whim.pool==="positive"?"好兴致":"小情绪"));
+    if(typeof d.drives.frustration==="number" && d.drives.frustration>0) chips.push("受挫 "+Math.round(d.drives.frustration*100));
+    if(d.drives.stale) chips.push("快照有点旧了");
+    if(d.drives.snapshot_at){
+      const t=new Date(d.drives.snapshot_at);
+      if(!isNaN(t)) chips.push("更新于 "+t.toLocaleTimeString("zh-CN",{hour:"2-digit",minute:"2-digit"}));
+    }
+    mindChips.innerHTML=chips.map(c=>`<span class="chip">${esc(c)}</span>`).join("");
+  }
+
+  /* ── 身体(Eventide) ── */
+  const bodyBars=$("bodyBars"), bodyChips=$("bodyChips");
+  if(!d.eventide_enabled){
+    bodyBars.innerHTML=`<div class="note">身体引擎已暂停</div>`;
+    bodyChips.innerHTML="";
+  }else if(!d.eventide || !d.eventide.state){
+    bodyBars.innerHTML=`<div class="note">身体引擎暂时没连上</div>`;
+    bodyChips.innerHTML="";
+  }else{
+    const st=d.eventide.state;
+    const vals=st.values||{};
+    bodyBars.innerHTML=Object.keys(BODY_NAMES).map(k=>{
+      const v=vals[k];
+      if(typeof v!=="number") return "";
+      return barRow(BODY_NAMES[k], v, null);
+    }).join("");
+    const chips=[];
+    if(st.cycle_key) chips.push("周期 · "+(CYCLE_NAMES[st.cycle_key]||st.cycle_key));
+    if(st.active_event_key) chips.push("正在经历 · "+(EVENT_NAMES[st.active_event_key]||st.active_event_key));
+    bodyChips.innerHTML=chips.map(c=>`<span class="chip">${esc(c)}</span>`).join("");
+  }
+}
+
+/* ── 数据 ── */
+async function refresh(){
+  try{
+    const d=await (await api("/app/state-view")).json();
+    render(d);
+    $("liveHint").textContent="情绪数值旁的 ↑↓ 是和上一张快照比的变化；页面每分钟自动刷新。";
+    err("");
+  }catch(e){ if(e.message!=="401") err("加载失败:"+e.message); }
+}
+function err(msg){ $("errLine").textContent=msg||""; $("errLine").classList.toggle("hidden",!msg); }
+
+/* ── 接线 ── */
+$("topBack").onclick=()=>{
+  if (document.referrer && document.referrer.indexOf(location.origin) === 0) history.back();
+  else location.assign("index.html");
+};
+$("refreshBtn").onclick=()=>refresh();
+$("gateHome").onclick=()=>location.assign("index.html");
+$("gateSave").onclick=()=>{ const v=$("gateInput").value.trim(); if(v){ secret=v; localStorage.setItem(LS_KEY,v); boot(); } };
+
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden&&secret) refresh(); });
+setInterval(()=>{ if(secret&&!document.hidden) refresh(); },60000);
+
+/* ── 启动 ── */
+async function boot(){
+  if(!secret){ show("gate"); return; }
+  $("gateErr").classList.add("hidden");
+  show("main");
+  await refresh();
+}
+boot();
+</script>
+</body>
+</html>

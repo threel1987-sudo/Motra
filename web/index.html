@@ -3336,9 +3336,9 @@
           <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gMemory)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gMemory" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F2DBA6"/><stop offset="1" stop-color="#B0893F"/></linearGradient></defs><path d="M12 3.5c.8 5 3.5 7.7 8.5 8.5-5 .8-7.7 3.5-8.5 8.5-.8-5-3.5-7.7-8.5-8.5 5-.8 7.7-3.5 8.5-8.5Z"/></svg></span>
           <span class="app-label">记忆</span>
         </button>
-        <button class="app-tile menu-item" type="button" data-menu="tides" aria-label="日记本" style="grid-area: app7;">
-          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gTides)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gTides" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#93DDF4"/><stop offset="1" stop-color="#2E8CB8"/></linearGradient></defs><rect x="5" y="3.5" width="14" height="17" rx="2"/><path d="M8.5 3.5v17"/><path d="M11.5 8h4.5M11.5 11.5h4.5"/></svg></span>
-          <span class="app-label">日记本</span>
+        <button class="app-tile menu-item" type="button" data-menu="state" aria-label="状态" style="grid-area: app7;">
+          <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gState)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gState" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#F3A9C6"/><stop offset="1" stop-color="#B05A78"/></linearGradient></defs><path d="M3 12h4l2.5-6 3.5 12 2.5-8 1.5 2H21"/></svg></span>
+          <span class="app-label">状态</span>
         </button>
         <button class="app-tile menu-item" type="button" data-menu="settings" aria-label="设置" style="grid-area: app8;">
           <span class="app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="url(#gSettings)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><defs><linearGradient id="gSettings" gradientUnits="userSpaceOnUse" x1="12" y1="0" x2="12" y2="24"><stop offset="0" stop-color="#C9D6E8"/><stop offset="1" stop-color="#7A93B3"/></linearGradient></defs><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.6 7.6 0 0 0 0-3l2-1.5-2-3.4-2.4 1a7.5 7.5 0 0 0-2.6-1.5L14 2.6h-4l-.4 2.5a7.5 7.5 0 0 0-2.6 1.5l-2.4-1-2 3.4 2 1.5a7.6 7.6 0 0 0 0 3l-2 1.5 2 3.4 2.4-1a7.5 7.5 0 0 0 2.6 1.5l.4 2.5h4l.4-2.5a7.5 7.5 0 0 0 2.6-1.5l2.4 1 2-3.4z"/></svg></span>
@@ -3802,6 +3802,7 @@ if (menuPanel){
     else if (item.dataset.menu === "fridge") location.assign("fridge.html");  // 冰箱门便利贴(数据在 relay)
     else if (item.dataset.menu === "cat") location.assign("cat.html");        // 电子宠物猫卡(数据在 home_state 插件,经 relay 代理)
     else if (item.dataset.menu === "period") location.assign("period.html");  // 她的周期卡(来了/走了打个勾,状态按日期推导)
+    else if (item.dataset.menu === "state") location.assign("state.html");    // 他的状态:情绪 16 维 + 身体 7 项实时数值(loop 代理)
     else if (item.dataset.menu === "memory") location.assign("memory.html");  // 记忆仓库:中间页 → 跳 OB dashboard
     // 房间/设置:面板直接盖在首页上(菜单保持开着),关闭面板即回首页;
     // 若先 closeMenu 再开面板,两个动画之间的缝会漏出底下的聊天页(闪屏根因)

@@ -1330,6 +1330,13 @@ async def app_drives_status(request: Request):
     return await loop_json_async("/loop/drives/status")
 
 
+@app.get("/app/state-view")
+async def app_state_view(request: Request):
+    """「状态」页数据源:情绪 16 维 + 身体 7 项,只读。"""
+    check_auth(request)
+    return await loop_json_async("/loop/state-view")
+
+
 @app.post("/app/drives/sleep")
 async def app_drives_sleep(request: Request):
     check_auth(request)
