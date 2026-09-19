@@ -4210,6 +4210,10 @@ if (drivesToggleRow) drivesToggleRow.addEventListener("click", (e) => {
 
 /* ── 睡眠开关:她手动让他睡/叫他起,走 MOTRA→Drivesoid 直连,不经过模型 ── */
 const sleepRowToggle = $("#sleepRowToggle"), sleepEntryStatus = $("#sleepEntryStatus"), sleepToggleRow = $("#sleepToggleRow");
+/* Drivesoid 的工人每 150s 才结一次账,睡眠指令按下后状态最长滞后 ~2.5 分钟。
+   期间若直接拿服务端状态刷新,开关会被「还没入账的旧状态」弹回去——
+   所以按下成功后 locally 挂起 200s,覆盖这段滞后;过了窗口再以服务端为准。 */
+let sleepHoldState = null, sleepHoldUntil = 0;
 async function refreshSleepStatus(){
   if (!sleepRowToggle || !sleepEntryStatus) return;
   if (USE_MOCK || !secret){ sleepEntryStatus.textContent = "醒着"; return; }
@@ -4217,6 +4221,14 @@ async function refreshSleepStatus(){
     sleepEntryStatus.textContent = "情绪与身体已暂停";
     sleepRowToggle.checked = false;
     return;
+  }
+  if (sleepHoldState !== null){
+    if (Date.now() < sleepHoldUntil){
+      sleepRowToggle.checked = sleepHoldState;
+      sleepEntryStatus.textContent = sleepHoldState ? "入睡指令已送达,他正在睡着…" : "唤醒指令已送达,他正在醒…";
+      return;
+    }
+    sleepHoldState = null;
   }
   try {
     const r = await fetch(`${API_BASE}/app/drives/status`, { headers: authHeaders() });
@@ -4256,6 +4268,8 @@ if (sleepRowToggle){
       });
       const body = await r.json().catch(() => ({}));
       if (!r.ok || body.ok !== true) throw new Error(body.detail || body.error || ("HTTP " + r.status));
+      sleepHoldState = wantSleep;
+      sleepHoldUntil = Date.now() + 200000;  // 200s > 工人节拍 150s,盖住入账滞后
       showToast(wantSleep ? "他睡下了,晚安" : "他醒了");
     } catch (err) {
       sleepRowToggle.checked = !wantSleep;
