@@ -46,6 +46,7 @@ import re
 import sqlite3
 import hashlib
 import sys
+import threading
 import time
 import urllib.request
 import uuid
@@ -730,6 +731,8 @@ except Exception as exc:  # 没装包只损失身体系统,聊天主链路不受
 _EVENTIDE_RUNTIME: Any = None
 _EVENTIDE_STATE: Any = None
 _EVENTIDE_META: dict[str, Any] = {}
+# 结算在后台线程里跑,和前台 tick/note 会并发碰同一份 state;一把小锁管住读写。
+_EVENTIDE_LOCK = threading.Lock()
 
 
 def eventide_enabled() -> bool:
@@ -780,7 +783,16 @@ def _eventide_load() -> Any:
             else:
                 _EVENTIDE_STATE = _EVENTIDE_RUNTIME.create_state(now)
         except Exception as exc:
+            # 状态读不出来(文件损坏/上游 Eventide 升级改了格式)时,直接把旧文件
+            # 原地备份再重建——静默 create_state 等于把她积累的数值悄悄清零。
             print(f"[eventide] state load failed, recreate: {exc}", file=sys.stderr, flush=True)
+            try:
+                if os.path.exists(EVENTIDE_STATE_FILE):
+                    bak = f"{EVENTIDE_STATE_FILE}.bak-{dt.datetime.now(dt.timezone.utc).strftime('%Y%m%d%H%M%S')}"
+                    os.replace(EVENTIDE_STATE_FILE, bak)
+                    print(f"[eventide] unreadable state backed up to {bak}", file=sys.stderr, flush=True)
+            except Exception:
+                pass
             _EVENTIDE_META = {}
             _EVENTIDE_STATE = _EVENTIDE_RUNTIME.create_state(now)
     return _EVENTIDE_STATE
@@ -803,13 +815,19 @@ def eventide_note_user_message(text: str) -> None:
     if not eventide_enabled():
         return
     try:
-        state = _eventide_load()
-        now = dt.datetime.now(dt.timezone.utc)
-        _EVENTIDE_META["last_user_at"] = now.isoformat()
-        words = _eventide_trigger_words()
-        if words and text and _ev_find_triggers is not None and _ev_find_triggers(words, text):
-            _EVENTIDE_RUNTIME.start_event(state, "voice_or_name_trigger", now)
-        _eventide_save()
+        with _EVENTIDE_LOCK:
+            state = _eventide_load()
+            now = dt.datetime.now(dt.timezone.utc)
+            _EVENTIDE_META["last_user_at"] = now.isoformat()
+            words = _eventide_trigger_words()
+            if words and text and _ev_find_triggers is not None and _ev_find_triggers(words, text):
+                started = _EVENTIDE_RUNTIME.start_event(state, "voice_or_name_trigger", now)
+                if started:
+                    # 该事件只持续 10–35 分钟,tick 攒下的热/敏感(+0.3~1.5)远小于结束时的
+                    # 回扣(heat-2 / sensitivity-4),裸点事件等于每次喊他名字数值净跌。
+                    # 命中瞬间补一笔即时刺激,事件的「来快退快」才不是净负。
+                    _EVENTIDE_RUNTIME.apply_delta(state, {"heat": 3, "sensitivity": 4})
+            _eventide_save()
     except Exception as exc:
         print(f"[eventide] note_user_message failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
 
@@ -827,9 +845,10 @@ def eventide_on_sleep(sleep_type: str) -> None:
     if not deltas:
         return
     try:
-        state = _eventide_load()
-        applied = _EVENTIDE_RUNTIME.apply_delta(state, deltas)
-        _eventide_save()
+        with _EVENTIDE_LOCK:
+            state = _eventide_load()
+            applied = _EVENTIDE_RUNTIME.apply_delta(state, deltas)
+            _eventide_save()
         print(f"[eventide] sleep mirror {sleep_type}: {applied}", flush=True)
     except Exception as exc:
         print(f"[eventide] sleep mirror failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
@@ -840,21 +859,118 @@ def eventide_context_block() -> str:
     if not eventide_enabled():
         return ""
     try:
-        state = _eventide_load()
-        now = dt.datetime.now(dt.timezone.utc)
-        last_at = None
-        raw_last = str(_EVENTIDE_META.get("last_user_at") or "").strip()
-        if raw_last:
-            try:
-                last_at = dt.datetime.fromisoformat(raw_last.replace("Z", "+00:00"))
-            except Exception:
-                last_at = None
-        card = _EVENTIDE_RUNTIME.tick_and_render(state, now, last_counterpart_message_at=last_at)
-        _eventide_save()
+        with _EVENTIDE_LOCK:
+            state = _eventide_load()
+            now = dt.datetime.now(dt.timezone.utc)
+            last_at = None
+            raw_last = str(_EVENTIDE_META.get("last_user_at") or "").strip()
+            if raw_last:
+                try:
+                    last_at = dt.datetime.fromisoformat(raw_last.replace("Z", "+00:00"))
+                except Exception:
+                    last_at = None
+            card = _EVENTIDE_RUNTIME.tick_and_render(state, now, last_counterpart_message_at=last_at)
+            _eventide_save()
         return (card or "").strip()
     except Exception as exc:
         print(f"[eventide] tick/render failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
         return ""
+
+
+# ── Eventide 互动窗口结算 ─────────────────────────────────────────────────
+# 身体引擎真正的「互动输入口」:Eventide 自带的 settle 流程——把这一轮
+# 「她说的话 + 他的回复」交给一个小模型判断对身体的影响(每项 ±3~4),
+# 再写回状态。不接它,身体数值就只有时间流逝的回归涨落:亲密互动再热烈,
+# 热度/敏感度也一动不动,只剩周期目标把它们往回拉——看起来就是「不动还反降」。
+# 和情绪上报一个原则:后台跑、短超时、任何失败只记日志,绝不拖累聊天主链路。
+EVENTIDE_SETTLE_ENABLED = os.environ.get("EVENTIDE_SETTLE_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off")
+# 结算专用路由:默认借情绪分类器那一组 env(都是便宜小模型,和身体引擎
+# 一样随「情绪与身体」开关同生同死);没配则回退主链第一条。也可用
+# EVENTIDE_SETTLE_API_BASE / _API_KEY / _MODEL 单独指定。
+EVENTIDE_SETTLE_API_BASE = os.environ.get("EVENTIDE_SETTLE_API_BASE", "").strip()
+EVENTIDE_SETTLE_API_KEY = os.environ.get("EVENTIDE_SETTLE_API_KEY", "").strip()
+EVENTIDE_SETTLE_MODEL = os.environ.get("EVENTIDE_SETTLE_MODEL", "").strip()
+_EVENTIDE_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))  # 与主链一致,不走代理
+_EVENTIDE_BG_TASKS: set[asyncio.Task] = set()
+
+
+def _eventide_settle_route() -> dict[str, str] | None:
+    """结算用哪条模型路由:专属 env > 情绪分类器 env > 主链第一条。"""
+    base = EVENTIDE_SETTLE_API_BASE or os.environ.get("DRIVES_CLASSIFIER_ENDPOINT", "").strip()
+    key = EVENTIDE_SETTLE_API_KEY or os.environ.get("DRIVES_API_KEY", "").strip()
+    model = EVENTIDE_SETTLE_MODEL or os.environ.get("DRIVES_CLASSIFIER_MODEL", "").strip()
+    if base and key and model:
+        return {"url": base.rstrip("/") + "/chat/completions", "key": key, "model": model}
+    chain = main_chain()
+    if chain:
+        r = chain[0]
+        return {"url": str(r["url"]).rstrip("/") + "/chat/completions", "key": str(r["key"]), "model": str(r["model"])}
+    return None
+
+
+def _eventide_extract_json(text: str) -> dict[str, Any] | None:
+    """从模型输出里抠出第一个 JSON 对象(容忍 ```json 围栏和前后废话)。"""
+    m = re.search(r"\{.*\}", text or "", re.S)
+    if not m:
+        return None
+    try:
+        data = json.loads(m.group(0))
+        return data if isinstance(data, dict) else None
+    except Exception:
+        return None
+
+
+def eventide_settle_window(user_text: str, reply_text: str) -> None:
+    """一轮互动窗口的身体结算(同步,放 to_thread 里跑)。"""
+    if not (eventide_enabled() and EVENTIDE_SETTLE_ENABLED):
+        return
+    user_text = (user_text or "").strip()
+    reply_text = (reply_text or "").strip()
+    if not user_text or not reply_text:
+        return
+    route = _eventide_settle_route()
+    if not route:
+        return
+    try:
+        window = f"她:{user_text[:800]}\n{ai_name() or '他'}:{reply_text[:800]}"
+        with _EVENTIDE_LOCK:
+            prompt = _EVENTIDE_RUNTIME.settlement_prompt(_eventide_load(), window)
+        req = urllib.request.Request(
+            route["url"],
+            data=json.dumps({
+                "model": route["model"],
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 0.2,
+                "max_tokens": 600,
+                "stream": False,
+            }, ensure_ascii=False).encode("utf-8"),
+            method="POST",
+        )
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", f"Bearer {route['key']}")
+        with _EVENTIDE_OPENER.open(req, timeout=60.0) as resp:
+            payload = json.loads(resp.read().decode("utf-8", "replace"))
+        content = str((((payload.get("choices") or [{}])[0]).get("message") or {}).get("content") or "")
+        data = _eventide_extract_json(content)
+        if not data:
+            print(f"[eventide] settle: unparseable model output: {content[:200]!r}", file=sys.stderr, flush=True)
+            return
+        with _EVENTIDE_LOCK:
+            applied = _EVENTIDE_RUNTIME.settle(_eventide_load(), data)
+            _eventide_save()
+        applied = {k: v for k, v in (applied or {}).items() if v}
+        print(f"[eventide] settle {data.get('settlement_result')}: {applied}", flush=True)
+    except Exception as exc:
+        print(f"[eventide] settle failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+
+
+def eventide_settle_async(user_text: str, reply_text: str) -> None:
+    """回复发出后后台结算一轮;失败静默,不影响聊天。"""
+    if not (eventide_enabled() and EVENTIDE_SETTLE_ENABLED):
+        return
+    task = asyncio.create_task(asyncio.to_thread(eventide_settle_window, user_text, reply_text))
+    _EVENTIDE_BG_TASKS.add(task)
+    task.add_done_callback(_EVENTIDE_BG_TASKS.discard)
 
 
 async def _drives_boot_handshake() -> None:
@@ -3067,6 +3183,8 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
     if ok and (out.get("text") or "").strip():
         # 只有模型真实产出了回复才上报(错误兜底文案不算 AI 的话)
         await asyncio.to_thread(drives_event, "msg_assistant", {"message_id": stream_id})
+        # 身体引擎结算这一轮互动(后台跑,不拖回复;亲密接触靠它才会反映到数值上)
+        eventide_settle_async(text, reply)
     return {"ok": ok, "relay": body, "api": meta}
 
 
@@ -3136,11 +3254,12 @@ async def loop_state_view():
             out["drives"] = None
     if eventide_enabled():
         try:
-            state = _eventide_load()
-            now = dt.datetime.now(dt.timezone.utc)
-            _EVENTIDE_RUNTIME.tick_and_render(state, now, last_counterpart_message_at=None)
-            _eventide_save()
-            out["eventide"] = {"state": _EVENTIDE_RUNTIME.dump_state(state)}
+            with _EVENTIDE_LOCK:
+                state = _eventide_load()
+                now = dt.datetime.now(dt.timezone.utc)
+                _EVENTIDE_RUNTIME.tick_and_render(state, now, last_counterpart_message_at=None)
+                _eventide_save()
+                out["eventide"] = {"state": _EVENTIDE_RUNTIME.dump_state(state)}
         except Exception as exc:
             print(f"[eventide] state-view failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
     return out
