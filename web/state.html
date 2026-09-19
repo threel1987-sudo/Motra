@@ -321,11 +321,15 @@ function render(d){
   }else{
     const st=d.eventide.state;
     const vals=st.values||{};
+    /* 身体引擎没有服务端快照对比(情绪有 prev),前端自己留一份上次的值算 ↑↓ */
+    let prevBody={}; try{ prevBody=JSON.parse(localStorage.getItem("eventidePrev")||"{}"); }catch(_){}
     bodyBars.innerHTML=Object.keys(BODY_NAMES).map(k=>{
       const v=vals[k];
       if(typeof v!=="number") return "";
-      return barRow(BODY_NAMES[k], v, null);
+      const p=(typeof prevBody[k]==="number")? v-prevBody[k] : null;
+      return barRow(BODY_NAMES[k], v, p);
     }).join("");
+    try{ localStorage.setItem("eventidePrev", JSON.stringify(vals)); }catch(_){}
     const chips=[];
     if(st.cycle_key) chips.push("周期 · "+(CYCLE_NAMES[st.cycle_key]||st.cycle_key));
     if(st.active_event_key) chips.push("正在经历 · "+(EVENT_NAMES[st.active_event_key]||st.active_event_key));

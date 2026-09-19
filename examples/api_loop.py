@@ -920,6 +920,33 @@ def _eventide_extract_json(text: str) -> dict[str, Any] | None:
         return None
 
 
+def _eventide_min_cycle_passed(state: Any, now: dt.datetime) -> bool:
+    m = getattr(state, "cycle_min_expires_at", None)
+    return bool(m) and now >= m
+
+
+def _eventide_apply_settlement_side_effects(state: Any, result: str) -> None:
+    """结算结果联动周期/事件:身体是活的,亲密互动应当能把他推出平稳期。
+    Eventide 的周期本来只按时间轮转(stable 一待就是 24–96h),互动再热也不换挡——
+    这里补上「身体被事实推着走」:escalated 且热度已高 → 提前换更热的一挡
+    (绕过 min 时长保护,火热时不讲道理);released/cooled_down → 退潮/恢复
+    (尊重 min 保护,防止反复横跳)。顺手点亮对应事件,状态页能看到「正在经历」。"""
+    now = dt.datetime.now(dt.timezone.utc)
+    rt = _EVENTIDE_RUNTIME
+    if result == "escalated":
+        rt.start_event(state, "low_fever_cling", now)
+        nxt = {"stable": "building", "building": "preheat", "preheat": "sensitive"}.get(state.cycle_key)
+        if nxt and int(state.values.get("heat", 0)) >= 50:
+            rt.enter_cycle(state, nxt, now)
+    elif result == "released":
+        rt.start_event(state, "scent_aftereffect", now)
+        if state.cycle_key in ("building", "preheat", "sensitive") and _eventide_min_cycle_passed(state, now):
+            rt.enter_cycle(state, "ebb", now)
+    elif result == "cooled_down":
+        if state.cycle_key in ("building", "preheat", "sensitive") and _eventide_min_cycle_passed(state, now):
+            rt.enter_cycle(state, "recovery", now)
+
+
 def eventide_settle_window(user_text: str, reply_text: str) -> None:
     """一轮互动窗口的身体结算(同步,放 to_thread 里跑)。"""
     if not (eventide_enabled() and EVENTIDE_SETTLE_ENABLED):
@@ -956,7 +983,9 @@ def eventide_settle_window(user_text: str, reply_text: str) -> None:
             print(f"[eventide] settle: unparseable model output: {content[:200]!r}", file=sys.stderr, flush=True)
             return
         with _EVENTIDE_LOCK:
-            applied = _EVENTIDE_RUNTIME.settle(_eventide_load(), data)
+            state = _eventide_load()
+            applied = _EVENTIDE_RUNTIME.settle(state, data)
+            _eventide_apply_settlement_side_effects(state, str(data.get("settlement_result") or ""))
             _eventide_save()
         applied = {k: v for k, v in (applied or {}).items() if v}
         print(f"[eventide] settle {data.get('settlement_result')}: {applied}", flush=True)
