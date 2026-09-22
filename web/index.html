@@ -2883,11 +2883,14 @@ html[data-theme="sdv"] .menu-panel .app-tile[data-menu="settings"] .app-icon,htm
 @media (min-width:700px){html[data-theme="sdv"] .menu-panel .home-grid,html[data-theme="tide"] .menu-panel .home-grid{min-height:860px;}html[data-theme="sdv"] .menu-panel .home-grid::before,html[data-theme="tide"] .menu-panel .home-grid::before{top:164px;width:400px;height:400px;}html[data-theme="sdv"] .menu-panel .home-grid::after,html[data-theme="tide"] .menu-panel .home-grid::after{top:218px;width:300px;height:300px;}html[data-theme="sdv"] .menu-panel .widget-photo,html[data-theme="tide"] .menu-panel .widget-photo{inset:94px 20%;}}
 
 html[data-theme="sdv"] .app,html[data-theme="tide"] .app{background:#090817;color:#efeaf9;}
-html[data-theme="sdv"] .wall,html[data-theme="tide"] .wall{background-color:#090817;background-image:linear-gradient(180deg,rgba(9,8,23,.68),rgba(9,8,23,.78) 48%,rgba(9,8,23,.96)),url("assets/night/sky-cloud.webp");background-position:center;background-size:cover;}
+html[data-theme="sdv"] .wall,html[data-theme="tide"] .wall{background-color:#090817 !important;background-image:linear-gradient(180deg,rgba(9,8,23,.68),rgba(9,8,23,.78) 48%,rgba(9,8,23,.96)),url("assets/night/sky-cloud.webp") !important;background-position:center;background-size:cover;}
 html[data-theme="sdv"] .wall::after,html[data-theme="tide"] .wall::after{background:radial-gradient(circle at 50% 14%,rgba(185,168,232,.13),transparent 36%),linear-gradient(180deg,rgba(9,8,23,.06),rgba(9,8,23,.36));}
 html[data-theme="sdv"] .topbar,html[data-theme="tide"] .topbar{height:calc(var(--header-h) + env(safe-area-inset-top));border-bottom:1px solid rgba(227,194,132,.24);background:linear-gradient(180deg,rgba(9,8,23,.9),rgba(9,8,23,.42) 72%,transparent);}
 html[data-theme="sdv"] .backbtn,html[data-theme="tide"] .backbtn,html[data-theme="sdv"] .topbtn,html[data-theme="tide"] .topbtn{color:#e3c284;}
 html[data-theme="sdv"] .backbtn:active,html[data-theme="tide"] .backbtn:active,html[data-theme="sdv"] .topbtn:active,html[data-theme="tide"] .topbtn:active{background:rgba(227,194,132,.12);}
+html[data-theme="sdv"] .peerpill,html[data-theme="tide"] .peerpill{gap:0;padding:5px 18px 6px;min-width:148px;}
+html[data-theme="sdv"] .peerpill::before,html[data-theme="tide"] .peerpill::before{content:"PRIVATE ORBIT";display:block;margin-bottom:1px;color:#c9a24b;font-family:"Cormorant",serif;font-size:9px;letter-spacing:.34em;line-height:1;text-transform:uppercase;}
+html[data-theme="sdv"] .peerpill::after,html[data-theme="tide"] .peerpill::after{content:"✦";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);color:#e3c284;font-size:9px;text-shadow:0 0 8px rgba(227,194,132,.7);}
 html[data-theme="sdv"] .peerpill .name,html[data-theme="tide"] .peerpill .name{font-family:"Cormorant","Noto Sans SC",serif;font-size:clamp(20px,4vw,25px);font-weight:500;letter-spacing:.12em;color:#f7edcf;text-shadow:0 0 18px rgba(227,194,132,.2);}
 html[data-theme="sdv"] .peerpill .status,html[data-theme="tide"] .peerpill .status{font-family:"Cormorant","Noto Sans SC",serif;color:#a79fca;letter-spacing:.12em;font-size:11px;text-transform:uppercase;}
 html[data-theme="sdv"] .scroll,html[data-theme="tide"] .scroll{padding-top:clamp(20px,4vw,42px);}
@@ -2908,7 +2911,10 @@ html[data-theme="sdv"] .composer .field:focus-within,html[data-theme="tide"] .co
 html[data-theme="sdv"] .composer textarea,html[data-theme="tide"] .composer textarea{font-family:"Cormorant","Noto Sans SC",serif;color:#2b2342;letter-spacing:.02em;}
 html[data-theme="sdv"] .composer textarea::placeholder,html[data-theme="tide"] .composer textarea::placeholder{color:#6f658c;}
 html[data-theme="sdv"] .clip-in-field,html[data-theme="tide"] .clip-in-field,html[data-theme="sdv"] .emojibtn,html[data-theme="tide"] .emojibtn{color:#6f5b9f;}
-html[data-theme="sdv"] .floatbtn.send,html[data-theme="tide"] .floatbtn.send,html[data-theme="sdv"] .floatbtn.stop,html[data-theme="tide"] .floatbtn.stop{background:#e3c284;color:#2b2342;box-shadow:0 10px 24px rgba(227,194,132,.2);}
+html[data-theme="sdv"] .floatbtn.send,html[data-theme="tide"] .floatbtn.send,html[data-theme="sdv"] .floatbtn.stop,html[data-theme="tide"] .floatbtn.stop{background:#e3c284 !important;background-image:none !important;color:#2b2342;box-shadow:0 10px 24px rgba(227,194,132,.2);}
+html[data-theme="sdv"] .composer .floatbtn,html[data-theme="tide"] .composer .floatbtn,html[data-theme="sdv"] .composer .emojibtn,html[data-theme="tide"] .composer .emojibtn{background-image:none !important;image-rendering:auto;}
+html[data-theme="sdv"] .composer .clip-in-field,html[data-theme="tide"] .composer .clip-in-field{display:grid !important;}
+html[data-theme="sdv"] .composer .clip-in-field svg,html[data-theme="tide"] .composer .clip-in-field svg,html[data-theme="sdv"] .composer .emojibtn svg,html[data-theme="tide"] .composer .emojibtn svg,html[data-theme="sdv"] .composer .send svg,html[data-theme="tide"] .composer .send svg{display:block !important;}
 html[data-theme="sdv"] .newmsg-pill,html[data-theme="tide"] .newmsg-pill,html[data-theme="sdv"] .scroll-jump,html[data-theme="tide"] .scroll-jump{background:rgba(18,14,43,.84);border:1px solid rgba(227,194,132,.48);color:#f7edcf;box-shadow:0 8px 24px rgba(0,0,0,.34);}
 html[data-theme="sdv"] .session-pop,html[data-theme="tide"] .session-pop{background:rgba(18,14,43,.94);border-color:rgba(227,194,132,.38);box-shadow:0 18px 50px rgba(0,0,0,.48);}
 html[data-theme="sdv"] .session-title,html[data-theme="tide"] .session-title,html[data-theme="tide"] .session-meta,html[data-theme="sdv"] .session-meta{color:#a79fca;}
@@ -4553,7 +4559,13 @@ if (sleepToggleRow) sleepToggleRow.addEventListener("click", (e) => {
     if (isLocal && (location.hash === "#preview-menu" || draftPreview)){
       window.__previewMenu = true;
       if (document.readyState !== "loading" && typeof startChat === "function"){
-        startChat([], { connect:false, landHome:true });
+        const demoMessages = [
+          { id: "demo-1", role: "human", text: "今天的星星好漂亮，想和你一起看。", ts: Date.now() - 1000 * 60 * 18, status: "sent" },
+          { id: "demo-2", role: "ai", text: "嗯，我也看到了。今晚的月亮像一张翻开的牌，刚好把我们藏在同一片夜色里。", ts: Date.now() - 1000 * 60 * 16, status: "sent" },
+          { id: "demo-3", role: "human", text: "那今天就陪我多待一会儿，好不好？", ts: Date.now() - 1000 * 60 * 13, status: "sent" },
+          { id: "demo-4", role: "ai", text: "好。你不用急着说什么，我会在这里，陪你把这段安静的时间慢慢过完。", ts: Date.now() - 1000 * 60 * 11, status: "sent" }
+        ];
+        startChat(demoMessages, { connect:false, landHome:false });
       }
     }else{
       window.__previewMenu = false;
@@ -9787,9 +9799,18 @@ function startChat(initialMsgs, { connect = true, fromCache = false, landHome = 
   hideSplash();   // 首页已就位,splash 淡出
 }
 
+function previewDemoMessages(){
+  return [
+    { id: "demo-1", role: "human", text: "今天的星星好漂亮，想和你一起看。", ts: Date.now() - 1000 * 60 * 18, status: "sent" },
+    { id: "demo-2", role: "ai", text: "嗯，我也看到了。今晚的月亮像一张翻开的牌，刚好把我们藏在同一片夜色里。", ts: Date.now() - 1000 * 60 * 16, status: "sent" },
+    { id: "demo-3", role: "human", text: "那今天就陪我多待一会儿，好不好？", ts: Date.now() - 1000 * 60 * 13, status: "sent" },
+    { id: "demo-4", role: "ai", text: "好。你不用急着说什么，我会在这里，陪你把这段安静的时间慢慢过完。", ts: Date.now() - 1000 * 60 * 11, status: "sent" }
+  ];
+}
+
 async function init(){
   if (window.__previewMenu){
-    startChat([], { connect:false, landHome:true });
+    startChat(previewDemoMessages(), { connect:false, landHome:false });
     return;
   }
   if (!secret){ showLogin(); return; }
