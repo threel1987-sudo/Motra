@@ -2882,15 +2882,17 @@ html[data-theme="sdv"] .menu-panel .app-tile[data-menu="state"] .app-icon,html[d
 html[data-theme="sdv"] .menu-panel .app-tile[data-menu="settings"] .app-icon,html[data-theme="tide"] .menu-panel .app-tile[data-menu="settings"] .app-icon{color:#c6b7eb;}
 @media (min-width:700px){html[data-theme="sdv"] .menu-panel .home-grid,html[data-theme="tide"] .menu-panel .home-grid{min-height:860px;}html[data-theme="sdv"] .menu-panel .home-grid::before,html[data-theme="tide"] .menu-panel .home-grid::before{top:164px;width:400px;height:400px;}html[data-theme="sdv"] .menu-panel .home-grid::after,html[data-theme="tide"] .menu-panel .home-grid::after{top:218px;width:300px;height:300px;}html[data-theme="sdv"] .menu-panel .widget-photo,html[data-theme="tide"] .menu-panel .widget-photo{inset:94px 20%;}}
 
-html[data-theme="sdv"] .app,html[data-theme="tide"] .app{background:#090817;color:#efeaf9;}
-html[data-theme="sdv"] .wall,html[data-theme="tide"] .wall{background-color:#090817 !important;background-image:linear-gradient(180deg,rgba(9,8,23,.68),rgba(9,8,23,.78) 48%,rgba(9,8,23,.96)),url("assets/night/sky-cloud.webp") !important;background-position:center;background-size:cover;}
+html[data-theme="sdv"] .app,html[data-theme="tide"] .app{background:transparent;color:#efeaf9;}
+html[data-theme="sdv"] .topbar,html[data-theme="tide"] .topbar,html[data-theme="sdv"] .scroll,html[data-theme="tide"] .scroll{font-family:"Noto Sans SC","PingFang SC",sans-serif;}
+html[data-theme="sdv"] .wall,html[data-theme="tide"] .wall{background-color:#090817 !important;background-image:linear-gradient(180deg,rgba(9,8,23,.32),rgba(9,8,23,.42) 48%,rgba(9,8,23,.76)),url("assets/night/sky-gold.webp") !important;background-position:center top;background-size:cover;}
 html[data-theme="sdv"] .wall::after,html[data-theme="tide"] .wall::after{background:radial-gradient(circle at 50% 14%,rgba(185,168,232,.13),transparent 36%),linear-gradient(180deg,rgba(9,8,23,.06),rgba(9,8,23,.36));}
 html[data-theme="sdv"] .topbar,html[data-theme="tide"] .topbar{height:calc(var(--header-h) + env(safe-area-inset-top));border-bottom:1px solid rgba(227,194,132,.24);background:linear-gradient(180deg,rgba(9,8,23,.9),rgba(9,8,23,.42) 72%,transparent);}
-html[data-theme="sdv"] .backbtn,html[data-theme="tide"] .backbtn,html[data-theme="sdv"] .topbtn,html[data-theme="tide"] .topbtn{color:#e3c284;}
+html[data-theme="sdv"] .backbtn,html[data-theme="tide"] .backbtn,html[data-theme="sdv"] .topbtn,html[data-theme="tide"] .topbtn{width:36px;height:36px;padding:0;background:rgba(18,14,43,.72) !important;background-image:none !important;border:1px solid rgba(227,194,132,.72) !important;border-radius:50% !important;box-shadow:0 0 0 4px rgba(227,194,132,.06),0 8px 18px rgba(0,0,0,.3) !important;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:#e3c284;font-family:"Noto Sans SC",sans-serif;image-rendering:auto;}
+html[data-theme="sdv"] .backbtn svg,html[data-theme="tide"] .backbtn svg,html[data-theme="sdv"] .topbtn svg,html[data-theme="tide"] .topbtn svg{display:block !important;filter:none !important;}
 html[data-theme="sdv"] .backbtn:active,html[data-theme="tide"] .backbtn:active,html[data-theme="sdv"] .topbtn:active,html[data-theme="tide"] .topbtn:active{background:rgba(227,194,132,.12);}
 html[data-theme="sdv"] .peerpill,html[data-theme="tide"] .peerpill{gap:0;padding:5px 18px 6px;min-width:148px;}
-html[data-theme="sdv"] .peerpill::before,html[data-theme="tide"] .peerpill::before{content:"PRIVATE ORBIT";display:block;margin-bottom:1px;color:#c9a24b;font-family:"Cormorant",serif;font-size:9px;letter-spacing:.34em;line-height:1;text-transform:uppercase;}
-html[data-theme="sdv"] .peerpill::after,html[data-theme="tide"] .peerpill::after{content:"✦";position:absolute;left:50%;bottom:-8px;transform:translateX(-50%);color:#e3c284;font-size:9px;text-shadow:0 0 8px rgba(227,194,132,.7);}
+html[data-theme="sdv"] .peerpill .peer-kicker,html[data-theme="tide"] .peerpill .peer-kicker{display:block;margin-bottom:1px;color:#c9a24b;font-family:"Cormorant",serif;font-size:9px;letter-spacing:.34em;line-height:1;text-transform:uppercase;}
+html[data-theme="sdv"] .peerpill::after,html[data-theme="tide"] .peerpill::after{content:"";position:absolute;left:50%;bottom:-7px;width:4px;height:4px;transform:translateX(-50%) rotate(45deg);border:1px solid #e3c284;box-shadow:0 0 8px rgba(227,194,132,.7);}
 html[data-theme="sdv"] .peerpill .name,html[data-theme="tide"] .peerpill .name{font-family:"Cormorant","Noto Sans SC",serif;font-size:clamp(20px,4vw,25px);font-weight:500;letter-spacing:.12em;color:#f7edcf;text-shadow:0 0 18px rgba(227,194,132,.2);}
 html[data-theme="sdv"] .peerpill .status,html[data-theme="tide"] .peerpill .status{font-family:"Cormorant","Noto Sans SC",serif;color:#a79fca;letter-spacing:.12em;font-size:11px;text-transform:uppercase;}
 html[data-theme="sdv"] .scroll,html[data-theme="tide"] .scroll{padding-top:clamp(20px,4vw,42px);}
@@ -2954,13 +2956,14 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
     </button>
     <div class="peerpill">
+      <span class="peer-kicker">PRIVATE ORBIT</span>
       <div class="peer-title-row">
         <h1 class="name" id="peerName">Claude</h1>
         <button class="presence-capsule" id="presenceCapsule" type="button" title="切换场景" aria-label="切换场景" hidden>🏠 在家</button>
       </div>
       <span class="status" id="status">connecting…</span>
     </div>
-    <div class="header-actions" aria-label="通话和更多操作">
+    <div class="header-actions" aria-label="聊天操作">
       <button class="topbtn sessions" id="sessionBtn" type="button" aria-label="切换聊天" title="切换聊天">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="3.5" width="7" height="7" rx="2"/><rect x="13.5" y="3.5" width="7" height="7" rx="2"/><rect x="3.5" y="13.5" width="7" height="7" rx="2"/><rect x="13.5" y="13.5" width="7" height="7" rx="2"/></svg>
       </button>
