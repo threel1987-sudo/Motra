@@ -4515,7 +4515,7 @@ if (sleepToggleRow) sleepToggleRow.addEventListener("click", (e) => {
 (function(){
   var isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0)$/.test(location.hostname) || /(?:^|&)_(?:port)=41(?:73|74)(?:&|$)/.test(location.search.slice(1));
   function maybePreview(){
-    var draftPreview = /(?:^|&)draft=home-v3(?:&|$)/.test(location.search.slice(1));
+    var draftPreview = /(?:^|&)draft=(?:home|home-[^&]+)(?:&|$)/.test(location.search.slice(1));
     if (isLocal && (location.hash === "#preview-menu" || draftPreview)){
       window.__previewMenu = true;
       if (document.readyState !== "loading" && typeof startChat === "function"){
