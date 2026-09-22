@@ -38,6 +38,11 @@ Thumbs.db
 .design_extract/
 .obref/
 .trae-html-share-packages/
+
+# 原始美化素材包(体积大,只留本地;入库的优化版在 web/assets/night/)
+美化素材包合集.rar
+素材/美化素材包合集/
+*.rar
 modref/
 ombre-brain/
 pwa_preview_shots/
