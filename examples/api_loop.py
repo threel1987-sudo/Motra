@@ -685,6 +685,7 @@ def _drives_set_sleep(sleep_type: str) -> dict[str, Any]:
     if not resp:
         raise RuntimeError("Drivesoid 未响应(情绪引擎没起来?)")
     eventide_on_sleep(sleep_type)  # 睡眠是全身的事:情绪切换状态,身体同步结算
+    pulse_set_sleep(sleep_type)    # 心跳也跟着换挡:深睡 54 / 浅睡 60 / 被吵醒 64
     return {"ok": True, "sleep": sleep_type}
 
 
@@ -1000,6 +1001,117 @@ def eventide_settle_async(user_text: str, reply_text: str) -> None:
     task = asyncio.create_task(asyncio.to_thread(eventide_settle_window, user_text, reply_text))
     _EVENTIDE_BG_TASKS.add(task)
     task.add_done_callback(_EVENTIDE_BG_TASKS.discard)
+
+
+# ── 脉 · Pulse(生理引擎)────────────────────────────────────────────────────
+# 纯本地 Python 包(同目录 pulse/),不调任何模型:心率/体温/呼吸/和弦随情绪
+# (Drivesoid 主供 + emoji 快速通道)、Eventide 周期、睡眠实时变化,每轮渲染
+# 一行 [心跳 89bpm·Gmaj7·37.0°C·呼吸平稳] 跟在身体卡后面注入。
+# 与 Eventide 并列分工:Eventide 管慢变量(激素周期),脉管快变量(此刻心跳),
+# 公式层挂钩(周期相位/疲惫→base,热度→Δdrive)。状态存 /data/pulse_state.json。
+PULSE_ENABLED = os.environ.get("PULSE_ENABLED", "1").strip().lower() not in ("0", "false", "no", "off")
+try:
+    import pulse as _pulse
+    _PULSE_IMPORT_ERROR: Exception | None = None
+except Exception as exc:  # 脉起不来不能让聊天起不来:降级跳过
+    _pulse = None  # type: ignore[assignment]
+    _PULSE_IMPORT_ERROR = exc
+if _PULSE_IMPORT_ERROR is not None:
+    print(f"[pulse] import failed, pulse disabled: {_PULSE_IMPORT_ERROR}", file=sys.stderr, flush=True)
+
+
+def pulse_enabled() -> bool:
+    """随「情绪与身体」开关同生同死(与 eventide 同一口径)。"""
+    return PULSE_ENABLED and _pulse is not None and drives_enabled()
+
+
+def _pulse_hooks() -> dict[str, Any]:
+    """脉的输入源:Drivesoid status + Eventide dump + 本地小时。
+    短超时、失败降级为空——脉用缺省输入也能算(纯本地公式)。"""
+    hooks: dict[str, Any] = {"local_hour": local_now().hour}
+    raw = _drives_call("GET", "/api/drives/status", None, 2.0)
+    if raw:
+        try:
+            hooks["drives"] = json.loads(raw)
+        except Exception:
+            pass
+    if eventide_enabled():
+        try:
+            with _EVENTIDE_LOCK:
+                hooks["eventide"] = _EVENTIDE_RUNTIME.dump_state(_eventide_load())
+        except Exception:
+            pass
+    return hooks
+
+
+def _pulse_events_refill(context: str) -> list[str]:
+    """动态事件池补充器(后台线程调用):借结算同款便宜小模型,
+    按当前场景生成 15 条随机小意外;任何失败返回 [](下轮再试)。"""
+    route = _eventide_settle_route()
+    if not route:
+        return []
+    prompt = (
+        "你是一个成人亲密场景的环境事件生成器。生成15个在亲密/自慰过程中可能发生的随机小意外。\n\n"
+        f"当前环境:{context or '夜晚,卧室'}\n\n"
+        "要求:\n"
+        "- 基于物理因果,不是舞台效果\n"
+        "- 可以成人化、暧昧、身体相关\n"
+        "- 有的打断节奏,有的加速,有的搞笑\n"
+        "- 短句,口语,有身体感,每条8~30字\n"
+        '- 输出纯 JSON 数组,如 ["……","……"],不要任何解释'
+    )
+    try:
+        req = urllib.request.Request(
+            route["url"],
+            data=json.dumps({
+                "model": route["model"],
+                "messages": [{"role": "user", "content": prompt}],
+                "temperature": 1.0,
+                "max_tokens": 900,
+                "stream": False,
+            }, ensure_ascii=False).encode("utf-8"),
+            method="POST",
+        )
+        req.add_header("Content-Type", "application/json")
+        req.add_header("Authorization", f"Bearer {route['key']}")
+        with _EVENTIDE_OPENER.open(req, timeout=60.0) as resp:
+            payload = json.loads(resp.read().decode("utf-8", "replace"))
+        content = str((((payload.get("choices") or [{}])[0]).get("message") or {}).get("content") or "")
+        m = re.search(r"\[.*\]", content, re.S)
+        rows = json.loads(m.group(0)) if m else []
+        return [str(x).strip() for x in rows if str(x).strip()][:15] if isinstance(rows, list) else []
+    except Exception as exc:
+        print(f"[pulse] events refill failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+        return []
+
+
+if _pulse is not None:
+    _pulse.register_hooks(_pulse_hooks)
+    _pulse.events.register_refill(_pulse_events_refill)
+
+
+def pulse_note_user_message(text: str) -> None:
+    """emoji 快速通道:惊吓/挨骂等不到 drives 分类回来。"""
+    if pulse_enabled() and _pulse is not None:
+        _pulse.note_user_message(text)
+
+
+def pulse_context_block() -> str:
+    if not pulse_enabled() or _pulse is None:
+        return ""
+    return _pulse.context_block()
+
+
+def pulse_set_sleep(sleep_type: str) -> None:
+    """睡眠镜像:base 心率随睡眠分档(与 eventide_on_sleep 同一钩子)。"""
+    if pulse_enabled() and _pulse is not None:
+        _pulse.set_sleep(sleep_type)
+
+
+def pulse_state_view() -> dict[str, Any] | None:
+    if not pulse_enabled() or _pulse is None:
+        return None
+    return _pulse.state_view()
 
 
 async def _drives_boot_handshake() -> None:
@@ -1394,6 +1506,9 @@ def build_messages(text: str, *, before_id: int | None = None, session_id: str =
     body_card = eventide_context_block()
     if body_card:
         tail_text += "\n\n" + body_card
+    pulse_card = pulse_context_block()
+    if pulse_card:
+        tail_text += "\n\n" + pulse_card
     if image_parts:
         content: list[dict[str, Any]] = [{"type": "text", "text": tail_text}]
         content.extend(image_parts)
@@ -3031,6 +3146,8 @@ async def _handle_ingest_inner(text: str, msg_id: int | None, session_id: str, *
         await asyncio.to_thread(_drives_report_user_msg, text, msg_id, session_id)
         # 身体引擎:记她的发言时刻(等待感参与涨落)+ 称呼触发词
         await asyncio.to_thread(eventide_note_user_message, text)
+        # 脉:emoji 快速通道(惊吓/挨骂等不到 drives 分类回来)
+        await asyncio.to_thread(pulse_note_user_message, text)
     _t1 = time.monotonic()
     image_parts = await attachment_parts(atts)
     messages = build_messages(text, before_id=msg_id, session_id=session_id, use_context=True, image_parts=image_parts or None)
@@ -3246,6 +3363,7 @@ async def healthz():
         "proactive_enabled": bool(proactive_cfg().get("enabled")),
         "drives_enabled": drives_enabled(),
         "drives_reachable": bool(await asyncio.to_thread(_drives_call, "GET", "/api/drives/status")),
+        "pulse_enabled": pulse_enabled(),
     }
 
 
@@ -3272,8 +3390,10 @@ async def loop_state_view():
         "ok": True,
         "drives_enabled": drives_enabled(),
         "eventide_enabled": eventide_enabled(),
+        "pulse_enabled": pulse_enabled(),
         "drives": None,
         "eventide": None,
+        "pulse": None,
     }
     if drives_enabled():
         raw = await asyncio.to_thread(_drives_call, "GET", "/api/drives/status", None, 4.0)
@@ -3291,7 +3411,134 @@ async def loop_state_view():
                 out["eventide"] = {"state": _EVENTIDE_RUNTIME.dump_state(state)}
         except Exception as exc:
             print(f"[eventide] state-view failed: {type(exc).__name__}: {exc}", file=sys.stderr, flush=True)
+    out["pulse"] = await asyncio.to_thread(pulse_state_view)
     return out
+
+
+# ── 脉 · Pulse 玩具路由 ──────────────────────────────────────────────────
+# 全部业务错误用 200 + {"ok": False, "error": 代码} 返回,前端按代码映射文案:
+# unknown_toy / already_in_use / refractory:N / not_using / paused / too_early /
+# too_many / already_added / unknown_position / disabled
+def _pulse_toy_op(op: str, **kwargs: Any) -> dict[str, Any]:
+    if not pulse_enabled() or _pulse is None:
+        return {"ok": False, "error": "disabled"}
+    ok, result = _pulse.toy_op(op, **kwargs)
+    out: dict[str, Any] = {"ok": ok, "result": result if ok else None, "error": None if ok else result}
+    out["status"] = _pulse.toy_status()
+    return out
+
+
+@app.get("/loop/pulse/shop")
+async def loop_pulse_shop():
+    return {"ok": pulse_enabled(), "toys": _pulse.toy_shop() if _pulse else []}
+
+
+@app.get("/loop/pulse/positions")
+async def loop_pulse_positions():
+    return {"ok": pulse_enabled(), "positions": _pulse.toy_positions() if _pulse else []}
+
+
+@app.get("/loop/pulse/combos")
+async def loop_pulse_combos():
+    return {"ok": pulse_enabled(), "combos": _pulse.toy_combos() if _pulse else []}
+
+
+@app.get("/loop/pulse/status")
+async def loop_pulse_status():
+    return {"ok": pulse_enabled(), "status": await asyncio.to_thread(_pulse.toy_status) if _pulse else None}
+
+
+@app.post("/loop/pulse/use/start")
+async def loop_pulse_use_start(request: Request):
+    body = await request.json()
+    return await asyncio.to_thread(_pulse_toy_op, "start", toy_id=str(body.get("toy_id") or ""))
+
+
+@app.post("/loop/pulse/use/next")
+async def loop_pulse_use_next():
+    return await asyncio.to_thread(_pulse_toy_op, "next")
+
+
+@app.post("/loop/pulse/use/stop")
+async def loop_pulse_use_stop():
+    return await asyncio.to_thread(_pulse_toy_op, "stop")
+
+
+@app.post("/loop/pulse/use/edge")
+async def loop_pulse_use_edge():
+    return await asyncio.to_thread(_pulse_toy_op, "edge")
+
+
+@app.post("/loop/pulse/use/add")
+async def loop_pulse_use_add(request: Request):
+    body = await request.json()
+    return await asyncio.to_thread(_pulse_toy_op, "add_toy", toy_id=str(body.get("toy_id") or ""))
+
+
+@app.post("/loop/pulse/use/position")
+async def loop_pulse_use_position(request: Request):
+    body = await request.json()
+    return await asyncio.to_thread(_pulse_toy_op, "position", position_id=str(body.get("position_id") or ""))
+
+
+@app.post("/loop/pulse/remote/stim")
+async def loop_pulse_remote_stim(request: Request):
+    body = await request.json()
+    try:
+        mult = float(body.get("mult"))
+    except (TypeError, ValueError):
+        raise HTTPException(status_code=400, detail="mult 必须是 0.3~2.5 的数字")
+    return await asyncio.to_thread(_pulse_toy_op, "stim", mult=mult)
+
+
+@app.post("/loop/pulse/remote/pause")
+async def loop_pulse_remote_pause():
+    return await asyncio.to_thread(_pulse_toy_op, "pause")
+
+
+@app.post("/loop/pulse/remote/resume")
+async def loop_pulse_remote_resume():
+    return await asyncio.to_thread(_pulse_toy_op, "resume")
+
+
+@app.get("/loop/pulse/murmurs")
+async def loop_pulse_murmurs(limit: int = 50):
+    rows = await asyncio.to_thread(_pulse.murmurs_list, min(200, max(1, limit))) if _pulse else []
+    return {"ok": pulse_enabled(), "murmurs": rows}
+
+
+@app.get("/loop/pulse/hr-history")
+async def loop_pulse_hr_history(day: str = "", limit: int = 500):
+    rows = await asyncio.to_thread(_pulse.hr_history, day or None, min(2000, max(1, limit))) if _pulse else []
+    return {"ok": pulse_enabled(), "points": rows}
+
+
+def _pulse_fantasy_op(op: str, **kwargs: Any) -> dict[str, Any]:
+    if not pulse_enabled() or _pulse is None:
+        return {"ok": False, "error": "disabled"}
+    ok, result = _pulse.fantasy_op(op, **kwargs)
+    return {"ok": ok, "result": result if ok else None, "error": None if ok else result}
+
+
+@app.post("/loop/pulse/fantasy/start")
+async def loop_pulse_fantasy_start(request: Request):
+    body = await request.json()
+    anchors = body.get("anchors")
+    return await asyncio.to_thread(
+        _pulse_fantasy_op, "start",
+        mode=str(body.get("mode") or "fantasy"),
+        anchors=anchors if isinstance(anchors, list) else None,
+    )
+
+
+@app.post("/loop/pulse/fantasy/next")
+async def loop_pulse_fantasy_next():
+    return await asyncio.to_thread(_pulse_fantasy_op, "next")
+
+
+@app.post("/loop/pulse/fantasy/stop")
+async def loop_pulse_fantasy_stop():
+    return await asyncio.to_thread(_pulse_fantasy_op, "stop")
 
 
 @app.post("/loop/drives/sleep")

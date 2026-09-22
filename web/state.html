@@ -192,6 +192,30 @@ button{ font:inherit; color:inherit; cursor:pointer; border:none; background:non
     <div class="chips" id="bodyChips"></div>
   </div>
 
+  <!-- 心跳(Pulse) -->
+  <div class="card glass" id="pulseCard">
+    <h2>心跳</h2>
+    <div class="csub">脉 · 生理引擎</div>
+    <div id="pulseMain"></div>
+    <canvas id="hrCanvas" width="640" height="120" style="width:100%;height:60px;margin-top:8px;display:block"></canvas>
+    <div class="chips" id="pulseChips"></div>
+  </div>
+
+  <!-- 玩具(Pulse) -->
+  <div class="card glass" id="toyCard">
+    <h2>玩具</h2>
+    <div class="csub" id="toySub">脉 · 玩具系统</div>
+    <div id="toyMain"></div>
+    <div id="toyCtrl" style="margin-top:10px"></div>
+  </div>
+
+  <!-- 碎碎念(Pulse) -->
+  <div class="card glass" id="murmurCard">
+    <h2>碎碎念</h2>
+    <div class="csub">身体的低语 · 不进聊天</div>
+    <div id="murmurList"></div>
+  </div>
+
   <div class="hint" id="liveHint"></div>
   <div class="hint hidden" id="errLine" style="color:var(--danger)"></div>
 </div>
@@ -264,6 +288,9 @@ const EVENT_NAMES={
   waiting_restless:"等待焦躁", restraint_rebound:"克制反弹", strange_calm:"反常平静",
 };
 
+const EMO_NAMES={ neutral:"平静", focused:"专注", happy:"开心", sad:"难过", nervous:"紧张",
+  scolded:"被骂了", startled:"吓了一跳", excited:"激动", intimate:"亲密", aroused:"动情" };
+
 /* ── 渲染 ── */
 function barRow(name, val, delta){
   const pct=Math.max(0, Math.min(100, Math.round(val)));
@@ -335,6 +362,151 @@ function render(d){
     if(st.active_event_key) chips.push("正在经历 · "+(EVENT_NAMES[st.active_event_key]||st.active_event_key));
     bodyChips.innerHTML=chips.map(c=>`<span class="chip">${esc(c)}</span>`).join("");
   }
+
+  /* ── 心跳(Pulse) ── */
+  const pulseMain=$("pulseMain"), pulseChips=$("pulseChips");
+  if(!d.pulse_enabled){
+    pulseMain.innerHTML=`<div class="note">脉已暂停（随「情绪与身体」开关）</div>`;
+    pulseChips.innerHTML="";
+  }else if(!d.pulse){
+    pulseMain.innerHTML=`<div class="note">脉暂时没连上</div>`;
+    pulseChips.innerHTML="";
+  }else{
+    const p=d.pulse;
+    pulseMain.innerHTML=
+      `<div style="text-align:center;padding:8px 0 4px">`
+      + `<div style="font-size:44px;font-weight:700;line-height:1.1">${esc(p.hr)}<span style="font-size:15px;font-weight:400;opacity:.6"> bpm</span></div>`
+      + `<div style="font-size:15px;opacity:.85;margin-top:4px">${esc(p.chord)} · ${esc(p.temp)}°C · 呼吸${esc(p.resp_label)}</div>`
+      + `</div>`;
+    const chips=[];
+    if(p.emotion && p.emotion!=="neutral") chips.push("情绪 · "+(EMO_NAMES[p.emotion]||p.emotion));
+    if(p.residue && p.residue.label) chips.push("心底还压着 · "+(EMO_NAMES[p.residue.label]||p.residue.label)+" "+Math.round(p.residue.strength*100)+"%");
+    if(p.sleep==="asleep") chips.push("深睡换挡中");
+    else if(p.sleep==="interrupted") chips.push("半夜被吵醒");
+    if(p.morning) chips.push("晨间反应");
+    if(p.fantasy && p.fantasy.active){
+      chips.push("意淫 · 「"+p.fantasy.label+"」"+p.fantasy.chord+" "+p.fantasy.bpm+"bpm");
+      if(p.fantasy.bias) chips.push("偏向 · "+p.fantasy.bias.lens);
+    }
+    pulseChips.innerHTML=chips.map(c=>`<span class="chip">${esc(c)}</span>`).join("");
+  }
+
+  /* ── 玩具(Pulse) ── */
+  const toyMain=$("toyMain"), toyCtrl=$("toyCtrl");
+  const toy=(d.pulse && d.pulse.toy)||null;
+  if(!d.pulse_enabled){
+    toyMain.innerHTML=`<div class="note">脉已暂停</div>`; toyCtrl.innerHTML="";
+  }else if(!toy){
+    toyMain.innerHTML=`<div class="note">玩具系统暂时没连上</div>`; toyCtrl.innerHTML="";
+  }else if(!toy.active){
+    const ref=(toy.refractory_minutes||0)>0?`<div class="note">不应期还剩 ${toy.refractory_minutes} 分钟</div>`:"";
+    const after=toy.afterglow?`<div class="note">余韵还在,身体没完全退下来</div>`:"";
+    toyMain.innerHTML=ref+after;
+    toyCtrl.innerHTML=`<div style="display:flex;flex-wrap:wrap;gap:6px">`
+      +(SHOP||[]).map(t=>`<button data-toy="${esc(t.id)}" style="${BTN}" ${toy.refractory_minutes>0?"disabled":""}>${esc(t.icon)} ${esc(t.name)}</button>`).join("")
+      +`</div>`;
+    toyCtrl.querySelectorAll("button[data-toy]").forEach(b=>b.onclick=()=>toyAction("/app/pulse/use/start",{toy_id:b.dataset.toy}));
+    if(!SHOP) loadShop();
+  }else{
+    toyMain.innerHTML=
+      `<div style="font-size:15px;line-height:1.9">`
+      +`<div>${(toy.toys||[]).map(t=>esc(t.icon+" "+t.name)).join(" + ")}`
+      +(toy.combo?` <span class="chip">${esc(toy.combo.name)}</span>`:"")+`</div>`
+      +`<div>阶段 ${toy.stage+1}/8「${esc(toy.stage_name)}」 · 欲望 ${toy.desire_pct}% · 体力 ${toy.stamina}</div>`
+      +`<div>体位 ${esc(toy.position.name)} · 节奏 ×${toy.stim_mult}${toy.paused?" · <b>已暂停</b>":""}${toy.suppression?` · 压抑 ${toy.suppression}/3`:""}</div>`
+      +`</div>`;
+    toyCtrl.innerHTML=
+      `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">`
+      +`<button id="tNext" style="${BTN}">推进</button>`
+      +`<button id="tEdge" style="${BTN}" ${toy.stage<4?"disabled":""}>喊停</button>`
+      +`<button id="tPause" style="${BTN}">${toy.paused?"继续":"暂停"}</button>`
+      +`<button id="tStop" style="${BTN}">结束</button>`
+      +`</div>`
+      +`<div style="display:flex;align-items:center;gap:8px;font-size:13px">节奏`
+      +`<input id="tStim" type="range" min="0.3" max="2.5" step="0.1" value="${toy.stim_mult}" style="flex:1">`
+      +`<span id="tStimVal">×${toy.stim_mult}</span></div>`
+      +`<div style="display:flex;gap:6px;margin-top:8px">`
+      +`<select id="tPos" style="flex:1;${INPUT}">${(POSITIONS||[]).map(p=>`<option value="${esc(p.id)}" ${p.id===toy.position.id?"selected":""}>${esc(p.name)}</option>`).join("")}</select>`
+      +`<select id="tAdd" style="flex:1;${INPUT}"><option value="">+ 加一件(组合技)</option>${(SHOP||[]).filter(t=>!(toy.toys||[]).some(u=>u.id===t.id)).map(t=>`<option value="${esc(t.id)}">${esc(t.icon)} ${esc(t.name)}</option>`).join("")}</select>`
+      +`</div>`;
+    $("tNext").onclick=()=>toyAction("/app/pulse/use/next",{});
+    $("tEdge").onclick=()=>toyAction("/app/pulse/use/edge",{});
+    $("tPause").onclick=()=>toyAction(toy.paused?"/app/pulse/remote/resume":"/app/pulse/remote/pause",{});
+    $("tStop").onclick=()=>toyAction("/app/pulse/use/stop",{});
+    const stim=$("tStim");
+    stim.oninput=()=>{$("tStimVal").textContent="×"+stim.value;};
+    stim.onchange=()=>toyAction("/app/pulse/remote/stim",{mult:parseFloat(stim.value)});
+    $("tPos").onchange=(e)=>toyAction("/app/pulse/use/position",{position_id:e.target.value});
+    $("tAdd").onchange=(e)=>{ if(e.target.value) toyAction("/app/pulse/use/add",{toy_id:e.target.value}); };
+  }
+}
+
+/* ── 玩具控制 ── */
+const BTN="padding:7px 12px;border:2px solid #5b3f3f;border-radius:8px;background:#f8f3ed;color:#3a2b22;font-size:13px;box-shadow:0 2px 0 #5b3f3f";
+const INPUT="padding:7px;border:2px solid #5b3f3f;border-radius:8px;background:#fff8ee;color:#3a2b22;font-size:13px";
+let SHOP=null, POSITIONS=null;
+const TOY_ERR={ unknown_toy:"玩具不存在", already_in_use:"已经有玩具在使用中", not_using:"当前没有在使用",
+  paused:"暂停中,先点继续", too_early:"还没到边上", too_many:"最多同时三件", already_added:"这件已经在用了",
+  unknown_position:"体位不存在", disabled:"脉已暂停(设置里「情绪与身体」关着)" };
+async function loadShop(){
+  const first=!SHOP;
+  try{ SHOP=(await (await api("/app/pulse/shop")).json()).toys||[]; }catch(_){}
+  try{ POSITIONS=(await (await api("/app/pulse/positions")).json()).positions||[]; }catch(_){}
+  if(first&&SHOP) refresh();   // 目录刚到就重画一次,不用等下一分钟
+}
+let toyBusy=false;
+async function toyAction(path,body){
+  if(toyBusy) return;           // 交互锁:防连点把状态机打乱
+  toyBusy=true;
+  try{
+    const d=await (await api(path,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body||{})})).json();
+    if(d.ok===false){
+      let msg=d.error||"操作失败";
+      if(String(msg).startsWith("refractory:")) msg="不应期还剩 "+msg.split(":")[1]+" 分钟";
+      else msg=TOY_ERR[msg]||msg;
+      err(msg); setTimeout(()=>err(""),3000);
+    }
+    await refresh();
+  }catch(e){ if(e.message!=="401"){ err("操作失败:"+e.message); setTimeout(()=>err(""),3000); } }
+  finally{ toyBusy=false; }
+}
+
+/* ── 碎碎念 ── */
+function relTime(ts){
+  const s=Math.max(0,Date.now()/1000-ts);
+  if(s<60) return "刚刚";
+  if(s<3600) return Math.floor(s/60)+"分钟前";
+  if(s<86400) return Math.floor(s/3600)+"小时前";
+  return Math.floor(s/86400)+"天前";
+}
+async function loadMurmurs(){
+  try{
+    const rows=(await (await api("/app/pulse/murmurs?limit=40")).json()).murmurs||[];
+    $("murmurList").innerHTML=rows.length?rows.slice().reverse().map(r=>
+      `<div style="font-size:13.5px;line-height:1.7;padding:5px 0;border-bottom:1px dashed rgba(90,63,63,.15)">`
+      +`<span class="chip" style="font-size:11px">${esc(r.source_label||r.source||"")}</span> `
+      +`<span style="opacity:.55;font-size:11px">${esc(relTime(r.ts||0))}</span><br>${esc(r.text||"身体事件同步中")}</div>`
+    ).join(""):`<div class="note">还没有低语</div>`;
+  }catch(_){}
+}
+
+/* ── 心率曲线(自绘,不依赖图表库) ── */
+async function loadHrCurve(){
+  try{
+    const pts=(await (await api("/app/pulse/hr-history?limit=400")).json()).points||[];
+    const cv=$("hrCanvas"), ctx=cv.getContext("2d");
+    ctx.clearRect(0,0,cv.width,cv.height);
+    if(pts.length<2){ return; }
+    const hrs=pts.map(p=>p.hr), lo=Math.min(...hrs)-4, hi=Math.max(...hrs)+4;
+    ctx.beginPath();
+    pts.forEach((p,i)=>{
+      const x=i/(pts.length-1)*cv.width, y=cv.height-(p.hr-lo)/(hi-lo)*cv.height;
+      i?ctx.lineTo(x,y):ctx.moveTo(x,y);
+    });
+    ctx.strokeStyle="#c2587c"; ctx.lineWidth=3; ctx.lineJoin="round"; ctx.stroke();
+    ctx.fillStyle="rgba(58,43,34,.6)"; ctx.font="20px sans-serif";
+    ctx.fillText(Math.round(hi-4)+"", 6, 20); ctx.fillText(Math.round(lo+4)+"", 6, cv.height-6);
+  }catch(_){}
 }
 
 /* ── 数据 ── */
@@ -342,6 +514,8 @@ async function refresh(){
   try{
     const d=await (await api("/app/state-view")).json();
     render(d);
+    loadMurmurs();       // 增强信息:失败不阻塞主面板
+    loadHrCurve();
     $("liveHint").textContent="情绪数值旁的 ↑↓ 是和上一张快照比的变化；页面每分钟自动刷新。";
     err("");
   }catch(e){ if(e.message!=="401") err("加载失败:"+e.message); }

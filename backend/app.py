@@ -1337,6 +1337,79 @@ async def app_state_view(request: Request):
     return await loop_json_async("/loop/state-view")
 
 
+# --- 脉 · Pulse 代理(玩具/遥控/碎碎念/心率历史,全部转发给 loop) -------------
+@app.get("/app/pulse/shop")
+async def app_pulse_shop(request: Request):
+    check_auth(request)
+    return await loop_json_async("/loop/pulse/shop")
+
+
+@app.get("/app/pulse/positions")
+async def app_pulse_positions(request: Request):
+    check_auth(request)
+    return await loop_json_async("/loop/pulse/positions")
+
+
+@app.get("/app/pulse/combos")
+async def app_pulse_combos(request: Request):
+    check_auth(request)
+    return await loop_json_async("/loop/pulse/combos")
+
+
+@app.get("/app/pulse/status")
+async def app_pulse_status(request: Request):
+    check_auth(request)
+    return await loop_json_async("/loop/pulse/status")
+
+
+@app.post("/app/pulse/use/{action}")
+async def app_pulse_use(request: Request, action: str):
+    check_auth(request)
+    if action not in ("start", "next", "stop", "edge", "add", "position"):
+        raise HTTPException(status_code=404, detail="unknown action")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}   # next/stop/edge 无 body
+    return await loop_json_async(f"/loop/pulse/use/{action}", method="POST", body=body)
+
+
+@app.post("/app/pulse/remote/{action}")
+async def app_pulse_remote(request: Request, action: str):
+    check_auth(request)
+    if action not in ("stim", "pause", "resume"):
+        raise HTTPException(status_code=404, detail="unknown action")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}   # pause/resume 无 body
+    return await loop_json_async(f"/loop/pulse/remote/{action}", method="POST", body=body)
+
+
+@app.get("/app/pulse/murmurs")
+async def app_pulse_murmurs(request: Request, limit: int = 50):
+    check_auth(request)
+    return await loop_json_async(f"/loop/pulse/murmurs?limit={min(200, max(1, limit))}")
+
+
+@app.get("/app/pulse/hr-history")
+async def app_pulse_hr_history(request: Request, day: str = "", limit: int = 500):
+    check_auth(request)
+    return await loop_json_async(f"/loop/pulse/hr-history?day={day}&limit={min(2000, max(1, limit))}")
+
+
+@app.post("/app/pulse/fantasy/{action}")
+async def app_pulse_fantasy(request: Request, action: str):
+    check_auth(request)
+    if action not in ("start", "next", "stop"):
+        raise HTTPException(status_code=404, detail="unknown action")
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}   # next/stop 无 body
+    return await loop_json_async(f"/loop/pulse/fantasy/{action}", method="POST", body=body)
+
+
 @app.post("/app/drives/sleep")
 async def app_drives_sleep(request: Request):
     check_auth(request)
