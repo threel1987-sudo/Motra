@@ -21,6 +21,7 @@ const PRECACHE = [
   "./assets/night/sky-gold.webp",
   "./assets/night/sky-compass.webp",
   "./assets/night/sky-lake.webp",
+  "./assets/night/sky-chart.webp",
   "./assets/night/gold-05.webp",
   "./assets/night/gold-06.webp",
   "./assets/night/gold-14.webp",

@@ -56,9 +56,9 @@
     var THEMES = ["tide","sdv"];
     try{
       var t = localStorage.getItem("companion_theme");
-      if (THEMES.indexOf(t) < 0) t = "sdv";
+      if (THEMES.indexOf(t) < 0) t = "tide";
       document.documentElement.setAttribute("data-theme", t);
-    }catch(e){ document.documentElement.setAttribute("data-theme", "sdv"); }
+    }catch(e){ document.documentElement.setAttribute("data-theme", "tide"); }
   })();
 </script>
 
@@ -1196,8 +1196,8 @@
   .login input:focus{ border-color: var(--accent); box-shadow: 0 0 0 3px var(--info-ring); }
   .login button{
     width:100%; padding: 14px; font: inherit; font-weight:600;
-    background: var(--accent); color: var(--accent-fg); border:none; border-radius:14px; cursor:pointer;
-    box-shadow: 0 0 24px rgba(168,204,224,.18);
+    background: linear-gradient(180deg,#eccf92 0%,#d9b25f 55%,#c9a24b 100%); color:#4a3418; border:none; border-radius:14px; cursor:pointer;
+    box-shadow: 0 6px 20px rgba(201,162,75,.35);
   }
   .login button:active{ transform: scale(.99); }
   .login .err{ color:#E0A8A8; font-size:13px; min-height:16px; text-align:center; margin:0; }
@@ -1234,6 +1234,11 @@
   }
   .profile-page::before{
     content:""; position:absolute; inset:0; background: var(--scrim); pointer-events:none;
+  }
+  /* 设置页:星图壁纸,安静不抢戏 */
+  .profile-page{
+    --wall-default: url("assets/night/sky-chart.webp");
+    --scrim: linear-gradient(180deg, rgba(13,9,32,.38) 0%, rgba(13,9,32,.44) 40%, rgba(13,9,32,.70) 100%);
   }
   .profile-topbar{
     position: relative; z-index:1;
@@ -1543,7 +1548,7 @@
   .debug-output{ margin-top:8px; padding:10px 12px; border-radius:10px; background:var(--field-bg); border:1px solid var(--field-line); font:11px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace; color:var(--text-soft); white-space:pre-wrap; word-break:break-all; max-height:280px; overflow-y:auto; }
   .config-actions{ display:flex; gap:8px; margin-top:10px; }
   .config-action{ flex:1; border:1px solid var(--card-line); border-radius:10px; padding:8px; background:var(--seg-track); color:var(--text); font:inherit; font-size:12px; cursor:pointer; }
-  .config-action.primary{ background:var(--send-bg); color:var(--accent-fg); }
+  .config-action.primary{ background:linear-gradient(180deg,#eccf92 0%,#d9b25f 55%,#c9a24b 100%); color:#4a3418; box-shadow:0 6px 20px rgba(201,162,75,.30); }
   .config-action.danger{ color:#e05a4d; border-color:#e05a4d55; background:transparent; }
   .config-row{ display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center; }
   .config-row input{ min-width:0; }
@@ -3169,7 +3174,7 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
           <button class="setting-row" id="settingsAppearanceRow" type="button">
             <span class="setting-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21a9 9 0 1 1 9-9c0 2-1.5 3-3 3h-2.2a2.4 2.4 0 0 0-2 3.7c.4.7.1 1.5-.8 1.9-.6.3-1.3.4-2 .4z"/><circle cx="7.5" cy="11.5" r=".9" fill="currentColor" stroke="none"/><circle cx="12" cy="7.5" r=".9" fill="currentColor" stroke="none"/><circle cx="16.5" cy="11.5" r=".9" fill="currentColor" stroke="none"/></svg></span>
             <span class="setting-body"><span class="setting-label">外观</span><span class="setting-sub">主题 · 配色 · 壁纸</span></span>
-            <span class="setting-value">深色海岸</span>
+            <span class="setting-value">星空塔罗</span>
             <span class="setting-chevron"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
           </button>
           <button class="setting-row" id="settingsFontRow" type="button">
