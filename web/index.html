@@ -1183,12 +1183,6 @@
   }
   .login .deco-divider{ width:200px; margin:-6px 0 -2px; opacity:.92; pointer-events:none; }
   .login-card{ border-color: rgba(227,194,132,.42); }
-  /* 品牌徽记(金月花体 logo,替代原圆头像) */
-  .login-logo{
-    width:138px; pointer-events:none; border-radius:22px;
-    border:1px solid rgba(227,194,132,.38);
-    box-shadow:0 0 26px rgba(227,194,132,.22), 0 14px 34px rgba(0,0,0,.4);
-  }
   /* Motra 名字由来:但丁《神曲·天堂篇》终句 */
   .login-motto{
     margin:-8px 0 0; font-family:"Cormorant",serif; font-style:italic;
@@ -3018,7 +3012,8 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
 <!-- ── Login ── -->
 <div class="login" id="login">
   <div class="login-card">
-    <img class="login-logo" src="assets/night/motra-logo.webp" alt="Motra">
+    <img class="deco-moon" src="assets/night/gold-14.webp" alt="">
+    <div class="orb"></div>
     <h1>Welcome home, Mio</h1>
     <p class="login-motto">l'Amor che muove il Sole e l'altre stelle.</p>
     <img class="deco-divider" src="assets/night/gold-05.webp" alt="">
@@ -4040,7 +4035,7 @@ function applyIdentity(){
   try{ document.title = APP_NAME; }catch(_){}
   const setText = (sel, val) => { const el = document.querySelector(sel); if (el) el.textContent = val; };
   const setAttr = (sel, a, val) => { const el = document.querySelector(sel); if (el) el.setAttribute(a, val); };
-  setText(".login h1", "欢迎回家" + HUMAN_NAME);
+  setText(".login h1", "Welcome home, " + HUMAN_NAME);
   setText(".login .sub", "输入连接密钥，进入你和" + AI_NAME + "的频道。");
   const emp = document.querySelector("#empty p"); if (emp) emp.innerHTML = "这里只有你和" + AI_NAME + "。<br>说点什么吧。";
   setText(".call-name", AI_NAME);

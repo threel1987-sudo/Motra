@@ -28,7 +28,6 @@ const PRECACHE = [
   "./assets/night/gold-15.webp",
   "./assets/night/gold-16.webp",
   "./assets/night/gold-17.webp",
-  "./assets/night/motra-logo.webp",
   "./assets/sdv/frame_cat.png",
   "./assets/sdv/deco_cat.png",
   "./assets/sdv/sparkle_s.png",
