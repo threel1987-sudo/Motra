@@ -1183,7 +1183,22 @@
   }
   .login .deco-divider{ width:200px; margin:-6px 0 -2px; opacity:.92; pointer-events:none; }
   .login-card{ border-color: rgba(227,194,132,.42); }
-  .login h1{ margin:0; font-family: var(--font-en), var(--font-cn); font-size:30px; font-weight:600; letter-spacing:0; color: var(--text); }
+  /* 品牌徽记(金月花体 logo,替代原圆头像) */
+  .login-logo{
+    width:138px; pointer-events:none; border-radius:22px;
+    border:1px solid rgba(227,194,132,.38);
+    box-shadow:0 0 26px rgba(227,194,132,.22), 0 14px 34px rgba(0,0,0,.4);
+  }
+  /* Motra 名字由来:但丁《神曲·天堂篇》终句 */
+  .login-motto{
+    margin:-8px 0 0; font-family:"Cormorant",serif; font-style:italic;
+    font-size:13.5px; letter-spacing:.06em; color:rgba(227,194,132,.78);
+  }
+  .login h1{
+    margin:0; letter-spacing:.01em;
+    font-family:"GreatVibes","Cormorant",cursive; font-weight:400;
+    font-size:46px; color:#f7edcf; text-shadow:0 0 22px rgba(227,194,132,.25);
+  }
   .login .sub{ margin:-8px 0 6px; color: var(--text-soft); font-size:14px; text-align:center; line-height:1.5; }
   .login form{ display:flex; flex-direction:column; gap:11px; width:100%; max-width:320px; }
   .login .login-label{ font-size:12px; font-weight:500; color: var(--text-soft); letter-spacing:.02em; }
@@ -2859,7 +2874,9 @@
   @keyframes moonIn{ from{ opacity:0; transform:scale(.6); } to{ opacity:1; transform:scale(1); } }
   .splash-txt{
     position: relative; z-index: 1;
-    font-family:"GreatVibes","Cormorant",cursive; font-size:46px; line-height:1; letter-spacing:.02em;
+    font-family:"GreatVibes","Cormorant",cursive; font-size:46px; line-height:1.15; letter-spacing:.02em;
+    /* 花体的上伸/下延会超出文字盒;加 padding 让渐变背景覆盖到笔画,负 margin 保持布局 */
+    padding:.22em .3em; margin:-.22em -.3em;
     background: linear-gradient(90deg,#c9a24b 0%,#f4d99c 42%,#fff6dd 50%,#f4d99c 58%,#c9a24b 100%);
     background-size: 220% 100%;
     -webkit-background-clip: text; background-clip: text;
@@ -3001,9 +3018,9 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
 <!-- ── Login ── -->
 <div class="login" id="login">
   <div class="login-card">
-    <img class="deco-moon" src="assets/night/gold-14.webp" alt="">
-    <div class="orb"></div>
-    <h1>欢迎回家Mio</h1>
+    <img class="login-logo" src="assets/night/motra-logo.webp" alt="Motra">
+    <h1>Welcome home, Mio</h1>
+    <p class="login-motto">l'Amor che muove il Sole e l'altre stelle.</p>
     <img class="deco-divider" src="assets/night/gold-05.webp" alt="">
     <p class="sub">输入连接密钥,进入你和阿克的频道。</p>
     <form id="loginForm" autocomplete="off">
