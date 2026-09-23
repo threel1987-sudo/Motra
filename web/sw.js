@@ -2,7 +2,7 @@
    IMPORTANT: bump CACHE on every front-end change, or installed clients keep the
    old shell (the precached index.html won't refresh until the SW reinstalls). */
 const AI_NAME = "阿克";             // push-title fallback; keep in sync with index.html CONFIG.AI_NAME
-const CACHE = "companion-v118";
+const CACHE = "companion-v119";
 const PRECACHE = [
   "./index.html",
   "./memory.html",
@@ -28,6 +28,7 @@ const PRECACHE = [
   "./fonts/fusion-pixel-zh.woff2",
   "./assets/sdv/bg_title.png",
   "./assets/sdv/frame_card.png",
+  "./assets/sdv/frame_calendar.png",
   "./assets/sdv/frame_input.png",
   "./assets/sdv/frame_banner.png",
   "./assets/sdv/bubble_b.png",
