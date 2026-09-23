@@ -2820,35 +2820,60 @@
   }
 
 
-  /* ── Splash 进场(boot 期间盖住一切;猫亲亲雪碧 + 像素点) ── */
+  /* ── Splash 进场(boot 期间盖住一切;星盘轨道 + 弯月 + 金色花体 Loading) ── */
   #splash{
     position: fixed; inset: 0; z-index: 999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
-    background-color: var(--bg);
-    background-image: var(--wall-default);
-    background-size: cover; background-position: center;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 26px;
+    background: radial-gradient(120% 90% at 50% 28%, #221a48 0%, #171233 46%, #0d0920 100%);
     opacity: 0; visibility: hidden;
     transition: opacity .35s ease, visibility 0s linear .35s;   /* boot 摘掉后淡出再隐藏 */
     pointer-events: none;
   }
   html.boot #splash{ opacity: 1; visibility: visible; transition: none; }
-  #splash::before{ content:""; position:absolute; inset:0; background: var(--scrim); }
-  .splash-cat{
-    position: relative; z-index: 1;
-    width: 176px; height: 152px;
-    background: url("assets/sdv/splash_cats.png") 0 0 / 600% 100% no-repeat;
-    image-rendering: pixelated;
-    animation: catKiss 1.2s steps(5) .05s forwards;   /* 6 帧 5 步,演完停在亲亲帧 */
-  }
-  @keyframes catKiss{ from{ background-position: 0% 0; } to{ background-position: 100% 0; } }
+  /* 星点(纯 CSS,与状态页夜空同款) */
+  #splash::before{ content:""; position:absolute; inset:0; opacity:.55;
+    background-image:
+      radial-gradient(1.4px 1.4px at 12% 18%, #fff 60%, transparent 61%),
+      radial-gradient(1px 1px at 78% 8%, #ffe9b8 60%, transparent 61%),
+      radial-gradient(1.2px 1.2px at 34% 42%, #fff 60%, transparent 61%),
+      radial-gradient(1px 1px at 58% 26%, #d9cfff 60%, transparent 61%),
+      radial-gradient(1.6px 1.6px at 88% 48%, #fff 60%, transparent 61%),
+      radial-gradient(1px 1px at 6% 66%, #ffe9b8 60%, transparent 61%),
+      radial-gradient(1.2px 1.2px at 46% 78%, #fff 60%, transparent 61%),
+      radial-gradient(1px 1px at 72% 88%, #d9cfff 60%, transparent 61%);
+    animation: starTwinkle 2.8s ease-in-out infinite alternate; }
+  @keyframes starTwinkle{ from{ opacity:.35; } to{ opacity:.7; } }
+  .splash-stage{ position:relative; z-index:1; width:180px; height:180px; display:grid; place-items:center; }
+  .splash-orbit{ position:absolute; inset:0; border-radius:50%;
+    border:1px solid rgba(227,194,132,.55);
+    animation: orbitSpin 6s linear infinite; }
+  .splash-orbit::before{ content:""; position:absolute; inset:15px; border-radius:50%;
+    border:1px dashed rgba(227,194,132,.28); }
+  .splash-orbit::after{ content:""; position:absolute; top:-4px; left:50%; margin-left:-4px;
+    width:8px; height:8px; border-radius:50%;
+    background:#f4d99c; box-shadow:0 0 12px 2px rgba(244,217,156,.85); }
+  @keyframes orbitSpin{ to{ transform: rotate(360deg); } }
+  .splash-moon{ width:88px; pointer-events:none;
+    filter: drop-shadow(0 0 16px rgba(227,194,132,.45));
+    animation: moonIn .9s cubic-bezier(.2,.7,.3,1.15) .1s both; }
+  @keyframes moonIn{ from{ opacity:0; transform:scale(.6); } to{ opacity:1; transform:scale(1); } }
   .splash-txt{
     position: relative; z-index: 1;
-    font-family: var(--font-en), var(--font-cn); font-size: 14px; letter-spacing: .12em;
-    color: var(--text); text-shadow: 1px 1px 0 rgba(248,243,237,.85);
+    font-family:"GreatVibes","Cormorant",cursive; font-size:46px; line-height:1; letter-spacing:.02em;
+    background: linear-gradient(90deg,#c9a24b 0%,#f4d99c 42%,#fff6dd 50%,#f4d99c 58%,#c9a24b 100%);
+    background-size: 220% 100%;
+    -webkit-background-clip: text; background-clip: text;
+    -webkit-text-fill-color: transparent; color: transparent;
+    animation: goldShine 2.4s linear infinite;
   }
+  @keyframes goldShine{ from{ background-position: 200% 0; } to{ background-position: -20% 0; } }
   .splash-txt::after{ content:""; animation: splashDots 1s steps(4) infinite; }
   @keyframes splashDots{ 0%{ content:""; } 25%{ content:"·"; } 50%{ content:"··"; } 75%{ content:"···"; } }
-  @media (prefers-reduced-motion: reduce){ .splash-cat{ animation: none; background-position: 100% 0; } .splash-txt::after{ animation: none; content:""; } }
+  @media (prefers-reduced-motion: reduce){
+    .splash-orbit, .splash-moon, .splash-txt, #splash::before{ animation: none; }
+    .splash-txt{ background-position: 50% 0; }
+    .splash-txt::after{ content:""; }
+  }
 
 </style>
 <link rel="stylesheet" href="sdv-skin.css">
@@ -2966,8 +2991,11 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
 
 <!-- ── Splash 进场(boot 期间可见,JS 就绪后淡出) ── -->
 <div id="splash" aria-hidden="true">
-  <div class="splash-cat"></div>
-  <div class="splash-txt">正在打开信箱</div>
+  <div class="splash-stage">
+    <div class="splash-orbit"></div>
+    <img class="splash-moon" src="assets/night/gold-14.webp" alt="">
+  </div>
+  <div class="splash-txt">Loading</div>
 </div>
 
 <!-- ── Login ── -->
@@ -9759,7 +9787,7 @@ function handle401(){
 }
 
 function hideSplash(){
-  /* splash 至少演完猫亲亲(1.25s)再淡出,加载慢则一直待到就绪 */
+  /* splash 至少亮相 1.25s(月亮入场演完)再淡出,加载慢则一直待到就绪 */
   const wait = Math.max(0, 1250 - (Date.now() - (window.__bootT0 || 0)));
   setTimeout(() => document.documentElement.classList.remove("boot"), wait);
 }
