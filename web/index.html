@@ -1144,6 +1144,11 @@
     background-size: cover;
     background-position: center;
   }
+  /* 星空塔罗门面:罗盘垂月壁纸 + 底部压深,登录卡浮在夜色上 */
+  .login{
+    --wall-default: url("assets/night/sky-compass.webp");
+    --scrim: linear-gradient(180deg, rgba(13,9,32,.34) 0%, rgba(13,9,32,.30) 34%, rgba(13,9,32,.52) 68%, rgba(13,9,32,.82) 100%);
+  }
   .login::before{
     content:""; position:absolute; inset:0; background: var(--scrim); pointer-events:none;
   }
@@ -1170,6 +1175,14 @@
     box-shadow: 0 20px 42px rgba(0,0,0,.35), 0 0 0 1px var(--hairline);
     animation: breathe 4.5s ease-in-out infinite;
   }
+  /* 登录卡装饰:弯月顶饰 + 星月分隔线,金框与其它页面统一 */
+  .login .deco-moon{
+    width:92px; pointer-events:none;
+    filter: drop-shadow(0 0 14px rgba(227,194,132,.38));
+    animation: breathe 4.5s ease-in-out infinite;
+  }
+  .login .deco-divider{ width:200px; margin:-6px 0 -2px; opacity:.92; pointer-events:none; }
+  .login-card{ border-color: rgba(227,194,132,.42); }
   .login h1{ margin:0; font-family: var(--font-en), var(--font-cn); font-size:30px; font-weight:600; letter-spacing:0; color: var(--text); }
   .login .sub{ margin:-8px 0 6px; color: var(--text-soft); font-size:14px; text-align:center; line-height:1.5; }
   .login form{ display:flex; flex-direction:column; gap:11px; width:100%; max-width:320px; }
@@ -1233,6 +1246,10 @@
     margin: 0; font-size: 17px; font-weight: 600;
     letter-spacing: .02em; color: var(--text);
   }
+  /* 设置页装饰:标题一点星光 + 星光线分隔 */
+  .profile-topbar h2{ display:flex; align-items:center; gap:8px; }
+  .profile-spark{ width:20px; height:20px; object-fit:contain; pointer-events:none; filter: drop-shadow(0 0 8px rgba(227,194,132,.5)); }
+  .profile-divider{ display:block; width:180px; margin:0 auto; opacity:.85; pointer-events:none; }
   .profile-back{
     position: absolute; left: var(--side-pad);
     width:40px; height:40px; flex:none;
@@ -1276,6 +1293,14 @@
     background-position: center;
     overflow: hidden;
   }
+  /* 房间页:湖畔黄昏壁纸,有「家」的暖调 */
+  .room-page{
+    --wall-default: url("assets/night/sky-lake.webp");
+    --scrim: linear-gradient(180deg, rgba(13,9,32,.30) 0%, rgba(13,9,32,.38) 40%, rgba(13,9,32,.68) 100%);
+  }
+  .room-ornament{ display:flex; flex-direction:column; align-items:center; gap:0; padding:2px 0 0; pointer-events:none; }
+  .room-ornament .orn-planet{ width:118px; filter: drop-shadow(0 0 16px rgba(227,194,132,.30)); }
+  .room-ornament .orn-divider{ width:190px; margin-top:-6px; opacity:.9; }
   .room-page::before{
     content:""; position:absolute; inset:0; background: var(--scrim); pointer-events:none;
   }
@@ -2943,8 +2968,10 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
 <!-- ── Login ── -->
 <div class="login" id="login">
   <div class="login-card">
+    <img class="deco-moon" src="assets/night/gold-14.webp" alt="">
     <div class="orb"></div>
     <h1>欢迎回家Mio</h1>
+    <img class="deco-divider" src="assets/night/gold-05.webp" alt="">
     <p class="sub">输入连接密钥,进入你和阿克的频道。</p>
     <form id="loginForm" autocomplete="off">
       <label class="login-label" for="secretInput">连接密钥</label>
@@ -3111,9 +3138,10 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
       <button class="profile-back" id="profileClose" type="button" aria-label="返回">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></svg>
       </button>
-      <h2 id="profileTitle">设置</h2>
+      <h2 id="profileTitle"><img class="profile-spark" src="assets/night/gold-16.webp" alt="">设置</h2>
     </div>
     <div class="profile-scroll">
+      <img class="profile-divider" src="assets/night/gold-17.webp" alt="">
       <div id="profileGroups">
         <!-- 个人资料(设计稿 profile row) -->
         <section class="setting-group" aria-label="个人资料">
@@ -3550,6 +3578,10 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
       <h2 id="roomTitle">空间与房间</h2>
     </div>
     <div class="room-scroll">
+      <div class="room-ornament" aria-hidden="true">
+        <img class="orn-planet" src="assets/night/gold-15.webp" alt="">
+        <img class="orn-divider" src="assets/night/gold-06.webp" alt="">
+      </div>
       <section class="settings-card" id="roomConfigView">
         <div class="config-fields">
           <div class="config-field-label">当前场景 <i class="info-i" title="决定他此刻的说话方式：在家（一起）写肢体和家具；我出门或他出门时，你俩隔着手机、短消息风格；一起出门写外面环境。人格不受影响。">i</i></div>
