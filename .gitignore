@@ -18,6 +18,9 @@ last_in_id
 node_modules/
 bun.lock
 bun.lockb
+
+# ── agent 临时工作区(拼图/截图/脚本,不进仓库) ──
+.scratch/
 __pycache__/
 *.pyc
 venv/
