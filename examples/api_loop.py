@@ -1430,6 +1430,83 @@ def relay_rows(before_id: int | None, session_id: str, limit: int) -> list[dict[
     return [dict(r) for r in reversed(rows)]
 
 
+def relay_tool_rows_between(from_id: int, before_id: int | None, session_id: str, cap: int = 200) -> list[dict[str, Any]]:
+    """窗口区间内的工具调用卡片(kind='tool',正文为空,调用明细在 meta.api.tool_calls)。
+
+    刻意不进 relay_rows 的条数口径——否则每次工具调用都挤占聊天历史条数、加速重锚、
+    打破前缀缓存。这里按 id 区间单独取,由 build_messages 按 id 归并进上下文:
+    让他在上下文里看得见「自己几号几点调用过什么、结果是什么」。没有这份痕迹,
+    他对「这件事做没做过」的唯一依据就是网关召回——召回里昨天写记忆的交互一旦
+    再被喂进来,他就会照着旧 pattern 把同一个命令再执行一遍(真实事故)。"""
+    path = Path(RELAY_DB)
+    if not path.exists() or from_id <= 0:
+        return []
+    params: list[Any] = [int(from_id)]
+    where = ["kind = 'tool'", "id >= ?"]
+    if before_id:
+        where.append("id < ?")
+        params.append(int(before_id))
+    if session_id:
+        where.append("json_extract(meta, '$.api_session') = ?")
+        params.append(session_id)
+    else:
+        where.append("(json_extract(meta, '$.api_session') IS NULL OR json_extract(meta, '$.api_session') = '')")
+    sql = (
+        "SELECT id, ts, kind, meta FROM messages "
+        f"WHERE {' AND '.join(where)} ORDER BY id ASC LIMIT ?"
+    )
+    params.append(max(0, cap))
+    with sqlite3.connect(str(path)) as conn:
+        conn.row_factory = sqlite3.Row
+        rows = conn.execute(sql, params).fetchall()
+    return [dict(r) for r in rows]
+
+
+def _fmt_local_ts(ts: Any) -> str:
+    """relay 的 UTC ISO 时间戳 → 用户本地的「M/D HH:MM」,给动作记录锚定日期用。"""
+    try:
+        t = dt.datetime.fromisoformat(str(ts or "").replace("Z", "+00:00"))
+        if t.tzinfo is None:
+            t = t.replace(tzinfo=dt.timezone.utc)
+        local = t.astimezone(local_now().tzinfo)
+        return f"{local.month}/{local.day} {local.hour:02d}:{local.minute:02d}"
+    except Exception:
+        return ""
+
+
+def _tool_trace_line(row: dict[str, Any]) -> str:
+    """一条含工具调用记录的消息 → 一行「动作记录」;没有记录则空串。"""
+    try:
+        meta = json.loads(row.get("meta") or "{}")
+    except Exception:
+        meta = {}
+    entries = ((meta.get("api") or {}).get("tool_calls")) or []
+    if not isinstance(entries, list):
+        return ""
+    when = _fmt_local_ts(row.get("ts"))
+    parts: list[str] = []
+    for e in entries:
+        if not isinstance(e, dict):
+            continue
+        tool = str(e.get("tool") or e.get("name") or "").strip()
+        if not tool:
+            continue
+        args = json.dumps(e.get("input") or {}, ensure_ascii=False)
+        if len(args) > 120:
+            args = args[:120] + "…"
+        result = e.get("result")
+        if not isinstance(result, str):
+            result = json.dumps(result, ensure_ascii=False) if result is not None else ""
+        result = " ".join(result.split())
+        if len(result) > 160:
+            result = result[:160] + "…"
+        mark = "失败" if e.get("status") == "error" else "完成"
+        parts.append(f"{tool}({args}) → {mark}:{result}" if result else f"{tool}({args}) → {mark}")
+    if not parts:
+        return ""
+    return f"[动作记录{f' {when}' if when else ''}] " + "；".join(parts)
+
+
 async def fetch_attachment_data_url(att: dict[str, Any]) -> str | None:
     """从 relay 下载图片附件并转成 data URL;非图片或下载失败返回 None。"""
     url = str(att.get("url") or "").strip()
@@ -1494,12 +1571,37 @@ def build_messages(text: str, *, before_id: int | None = None, session_id: str =
         n = history_n() if history_override is None else max(0, int(history_override))
         # 降档重试(history_override)要立刻拿到精确的小窗口,绕开锚定
         rows = _anchored_relay_rows(before_id, session_id, n) if history_override is None else relay_rows(before_id, session_id, n)
+        if rows:
+            # 把窗口区间内的工具卡片按 id 归并进来(不动 relay_rows 的条数口径)
+            tool_rows = relay_tool_rows_between(int(rows[0].get("id") or 0), before_id, session_id)
+            if tool_rows:
+                rows = sorted(rows + tool_rows, key=lambda r: int(r.get("id") or 0))
+        pending_traces: list[str] = []
         for row in rows:
+            if row.get("kind") == "tool":
+                line = _tool_trace_line(row)
+                if line:
+                    pending_traces.append(line)
+                continue
+            if row.get("kind") == "reply":
+                # 网关代执行模式没有独立 tool 卡片,调用记录挂在回复 meta 上,一并补出
+                line = _tool_trace_line(row)
+                if line:
+                    pending_traces.append(line)
             content = str(row.get("text") or "").strip()
             if not content:
                 continue
             role = "assistant" if row.get("direction") == "out" else "user"
+            if role == "assistant" and pending_traces:
+                # 痕迹并进紧随其后的那条回复:消息条数/角色交替与之前完全一致
+                # (严格的 Anthropic 转换层不接受相邻同角色消息),且动作和话挨着,
+                # 他最容易把「我做过什么」和「我说了什么」对上。
+                content = "\n".join(pending_traces) + "\n\n" + content
+                pending_traces = []
             messages.append({"role": role, "content": content})
+        if pending_traces:
+            # 残尾:生成被「停止」打断、工具卡片后没有回复——痕迹单独补一条,不吞
+            messages.append({"role": "assistant", "content": "\n".join(pending_traces)})
     tail_text = text or "（用户发来一张图片，请查看。）"
     if drives_block:
         tail_text += "\n\n" + drives_block
@@ -1509,6 +1611,15 @@ def build_messages(text: str, *, before_id: int | None = None, session_id: str =
     pulse_card = pulse_context_block()
     if pulse_card:
         tail_text += "\n\n" + pulse_card
+    # 时间锚点:上下文里原本没有任何「今天几号」的来源,他对日期的判断只能猜召回
+    # 内容的日期——猜错就会把昨天的事当成现在(照着召回里昨天的 pattern 重放动作)。
+    # 放在队尾紧贴模型开口,与 drives 块同理:每轮都变的内容不进 system,保住前缀缓存。
+    _now_local = local_now()
+    _weekday = "一二三四五六日"[_now_local.weekday()]
+    tail_text += (
+        f"\n\n[现在是 {_now_local.strftime('%Y-%m-%d %H:%M')} 周{_weekday}。"
+        "以这个时间为准区分今天和昨天;召回/记忆里的内容都各自属于它发生的那个日期。]"
+    )
     if image_parts:
         content: list[dict[str, Any]] = [{"type": "text", "text": tail_text}]
         content.extend(image_parts)
@@ -2275,7 +2386,33 @@ _ROUTE_NO_TOOLS: set[tuple[str, str]] = set()
 #   按窗口隔离 + 每天/每几小时重置,dashboard 会刷出多条记录)。
 _OB_SESSION_FIXED = str(os.environ.get("OB_SESSION_ID", "") or "").strip()
 _OB_SESSION_IDLE_S = max(30, int(os.environ.get("LOOP_OB_SESSION_IDLE_MINUTES", "180") or 180)) * 60
+# 槽位持久化:进程重启后沿用原窗口 id(空闲计时跨重启连续)。否则每次重启都铸新
+# 窗口,网关(Serein)按窗口隔离的召回冷却被重置,已交付过的旧召回会再喂一遍——
+# 模型容易把里面昨天的话头/命令当成待办重演(重启后重放昨天写记忆调用的事故)。
+_OB_SESSION_FILE = Path(os.environ.get("LOOP_OB_SESSION_FILE", str(LOOP_CONFIG.parent / "api_loop.ob_sessions.json")))
 _OB_SESSION_SLOTS: dict[str, dict[str, Any]] = {}
+
+
+def _ob_slots_load() -> None:
+    try:
+        data = json.loads(_OB_SESSION_FILE.read_text(encoding="utf-8"))
+        if isinstance(data, dict):
+            for k, v in data.items():
+                if isinstance(v, dict) and v.get("ob_id"):
+                    _OB_SESSION_SLOTS[str(k)] = {"ob_id": str(v["ob_id"]), "last": float(v.get("last") or 0.0)}
+    except Exception:
+        pass
+
+
+def _ob_slots_save() -> None:
+    try:
+        if len(_OB_SESSION_SLOTS) > 32:   # 只留最近使用的窗口,防无限增长
+            keep = sorted(_OB_SESSION_SLOTS.items(), key=lambda kv: float(kv[1].get("last") or 0.0))[-32:]
+            _OB_SESSION_SLOTS.clear()
+            _OB_SESSION_SLOTS.update(keep)
+        _OB_SESSION_FILE.write_text(json.dumps(_OB_SESSION_SLOTS, ensure_ascii=False), encoding="utf-8")
+    except Exception:
+        pass
 
 
 def ob_session_id(base: str) -> str:
@@ -2286,12 +2423,15 @@ def ob_session_id(base: str) -> str:
     """
     if _OB_SESSION_FIXED:
         return _OB_SESSION_FIXED
+    if not _OB_SESSION_SLOTS:
+        _ob_slots_load()
     now = time.time()
     slot = _OB_SESSION_SLOTS.get(base)
     if slot is None or (now - float(slot.get("last", 0.0))) > _OB_SESSION_IDLE_S:
         stamp = dt.datetime.now(dt.timezone.utc).strftime("%m%d-%H%M")
         slot = {"ob_id": f"{base}-w{stamp}-{uuid.uuid4().hex[:4]}", "last": now}
         _OB_SESSION_SLOTS[base] = slot
+        _ob_slots_save()
         print(f"[api_loop:session] OB session rotated → {slot['ob_id']}", flush=True)
     else:
         slot["last"] = now
@@ -3020,7 +3160,13 @@ async def _tool_loop(route: dict[str, Any], messages: list[dict[str, Any]], all_
                         await on_tool_call(entry)
                     except Exception:
                         pass
-            msgs.append({"role": "tool", "tool_call_id": call.get("id", ""), "content": content})
+            # 结果后缀把落点指回她:收尾生成时最新鲜的内容是这份结果 JSON,没有这句,
+            # 模型的注意力容易被它整个占走(只讲工具结果、接不住她上面那句话)。
+            msgs.append({
+                "role": "tool",
+                "tool_call_id": call.get("id", ""),
+                "content": content + "\n\n(动作已完成,同一个调用不要再重复执行。现在回到她最后说的话自然回应;结果里有用的信息带一句就好,别整段复读。)",
+            })
     if collected:
         out["tool_calls"] = collected
     if first_thinking and not out.get("thinking"):
