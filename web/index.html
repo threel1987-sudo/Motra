@@ -1594,6 +1594,7 @@
   .mcp-item.open .mcp-tools-panel{ display:block; }
   .mcp-tools-loading{ padding:10px 14px; color:var(--text-faint); font-size:11px; }
   .mcp-tools-list{ display:grid; gap:0; }
+  .mcp-tool-group-label{ padding:8px 14px 3px; font-size:11px; font-weight:600; color:var(--text-faint); letter-spacing:.06em; border-bottom:1px solid var(--card-line); }
   .mcp-tool-row{ display:flex; align-items:flex-start; gap:8px; padding:9px 14px; border-bottom:1px solid var(--card-line); }
   .mcp-tool-row:last-child{ border-bottom:0; }
   .mcp-tool-toggle{ flex:0 0 auto; margin-top:1px; width:32px; height:18px; position:relative; cursor:pointer; }
@@ -5942,6 +5943,18 @@ function renderMcpList(){
     if (editingMcpIndex === null && mcpEditBannerText) mcpEditBannerText.textContent = "添加 MCP 服务";
   }
 }
+// 工具分组:同一服务下一坨工具按用途分成小组。名字里带关键词的归到对应组,
+// 一个都没命中(比如别的服务)就只剩「其他」一组 → 自动退回平铺,不显示组标题。
+const MCP_TOOL_GROUP_RULES = [
+  { label: "猫咪", match: (n) => n.includes("cat") },
+  { label: "冰箱门纸条", match: (n) => n.includes("fridge") },
+  { label: "经期", match: (n) => n.includes("period") },
+  { label: "备忘与记忆墙", match: (n) => n.includes("note") || n.includes("wall") },
+];
+function mcpToolGroupLabel(name){
+  for (const g of MCP_TOOL_GROUP_RULES) if (g.match(name)) return g.label;
+  return "其他";
+}
 function renderToolsList(panel, tools, server, position) {
   panel.textContent = "";
   if (!tools.length) {
@@ -5952,9 +5965,25 @@ function renderToolsList(panel, tools, server, position) {
     return;
   }
   const disabledTools = (server.disabled_tools || []);
+  // 按组聚类,组内保持工具原有顺序
+  const groupOrder = [];
+  const grouped = {};
+  tools.forEach(tool => {
+    const label = mcpToolGroupLabel(tool.name || "");
+    if (!grouped[label]) { grouped[label] = []; groupOrder.push(label); }
+    grouped[label].push(tool);
+  });
+  const showGroupLabels = groupOrder.length > 1;
   const list = document.createElement("div");
   list.className = "mcp-tools-list";
-  tools.forEach(tool => {
+  groupOrder.forEach(label => {
+    if (showGroupLabels) {
+      const gl = document.createElement("div");
+      gl.className = "mcp-tool-group-label";
+      gl.textContent = label;
+      list.appendChild(gl);
+    }
+    grouped[label].forEach(tool => {
     const toolName = tool.name || "";
     const toolDesc = tool.description || "";
     const isEnabled = !disabledTools.includes(toolName);
@@ -5972,10 +6001,13 @@ function renderToolsList(panel, tools, server, position) {
     thumb.className = "mcp-tool-toggle-thumb";
     track.appendChild(thumb);
     toggleLabel.append(toggleInput, track);
-    toggleInput.addEventListener("change", () => {
+    toggleInput.addEventListener("change", async () => {
+      // 保存期间锁住开关:连按多个时,后一次若基于「上一次保存还没回来」的旧
+      // 配置重建整个服务列表,会把前一次的改动覆盖掉——开关看起来就「弹回去」了。
+      toggleInput.disabled = true;
       const servers = savedLoopConfig && Array.isArray(savedLoopConfig.mcp_servers) ? savedLoopConfig.mcp_servers.slice() : [];
       const srv = servers[position];
-      if (!srv) return;
+      if (!srv) { toggleInput.disabled = false; return; }
       const cur = srv.disabled_tools ? [...srv.disabled_tools] : [];
       if (toggleInput.checked) {
         const idx = cur.indexOf(toolName);
@@ -5984,7 +6016,9 @@ function renderToolsList(panel, tools, server, position) {
         if (!cur.includes(toolName)) cur.push(toolName);
       }
       servers[position] = { ...srv, disabled_tools: cur };
-      saveLoopConfig({ mcp_servers: mcpPayload(servers).map((s, i) => ({ ...s, disabled_tools: servers[i] ? (servers[i].disabled_tools || []) : [] })) }, mcpConfigHint);
+      const ok = await saveLoopConfig({ mcp_servers: mcpPayload(servers).map((s, i) => ({ ...s, disabled_tools: servers[i] ? (servers[i].disabled_tools || []) : [] })) }, mcpConfigHint);
+      // 成功时 saveLoopConfig 已整体重渲染;失败要自己重渲染,把开关弹回真实状态
+      if (!ok) renderMcpList();
     });
     const copy = document.createElement("div");
     copy.className = "mcp-tool-copy";
@@ -6000,6 +6034,7 @@ function renderToolsList(panel, tools, server, position) {
     }
     row.append(toggleLabel, copy);
     list.appendChild(row);
+    });
   });
   panel.appendChild(list);
 }
