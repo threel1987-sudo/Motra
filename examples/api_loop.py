@@ -2376,8 +2376,10 @@ class _DeltaEmitter:
         self.buf = ""
 
 
-# 路由级「不认 tools」记忆:(url, model) → 曾以 400/404/422 拒绝过 tools。
-_ROUTE_NO_TOOLS: set[tuple[str, str]] = set()
+# 路由级「不认 tools」记忆:(url, model) → 上次以 4xx 拒过 tools 的时刻(monotonic)。
+# 带 TTL 自愈(默认 10min,LOOP_NO_TOOLS_TTL_S 可调):到期后重新带 tools 探测。
+_ROUTE_NO_TOOLS: dict[tuple[str, str], float] = {}
+_ROUTE_NO_TOOLS_TTL = max(60.0, float(os.environ.get("LOOP_NO_TOOLS_TTL_S", "600") or 600))
 
 # OB session id 策略:
 # - 设了 OB_SESSION_ID(比如 "main"):所有窗口共用这一个 id,人格温度全局连续
@@ -2495,11 +2497,15 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
     # 兼容性:带 tools 时最多试两次 —— 第一次全量;若网关不认 OpenAI 格式工具
     # (Anthropic 中转的转换层常在此崩溃),第二次摘掉 tools 纯文本重试,聊天永远不断。
     attempts = [tools, None] if tools else [None]
-    # 粘性跳过:该路由一旦以 4xx 拒过 tools,进程生命周期内不再尝试——否则每条
-    # 消息都白付一次注定 400 的请求(双倍扣费的实测来源),工具反正也从未成功过。
+    # 粘性跳过:该路由若近期以 4xx 拒过 tools,短暂跳过——避免每条消息都白付一次
+    # 注定 400 的请求(双倍扣费的实测来源)。但带 TTL 自愈,防止中转网关一次偶发
+    # 4xx(如临时限流、参数校验)就把工具永久封禁。TTL 默认 10min(可调)。
     route_key = (str(route.get("url") or ""), str(route.get("model") or ""))
-    if tools and route_key in _ROUTE_NO_TOOLS:
+    _now = time.monotonic()
+    _blocked = _ROUTE_NO_TOOLS.get(route_key)
+    if tools and _blocked is not None and (_now - _blocked) < _ROUTE_NO_TOOLS_TTL:
         attempts = [None]
+        print(f"[api_loop:compat] route in no-tools cooldown ({(_ROUTE_NO_TOOLS_TTL - (_now - _blocked)) / 60:.1f}min left), sending without tools", flush=True)
     debug_stream = os.environ.get("LOOP_DEBUG_STREAM", "") not in ("", "0", "false", "False")
     async with httpx.AsyncClient(timeout=client_timeout, trust_env=False) as client:
         for attempt_no, cur_tools in enumerate(attempts):
@@ -2548,10 +2554,17 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                     except Exception:
                         err_detail = str(resp.status_code)
                     if cur_tools and resp.status_code in (400, 404, 422):
-                        _ROUTE_NO_TOOLS.add(route_key)
+                        # 只有错误报文真的提到 tool 才记冷却:上下文超长、内容审核、
+                        # 上游抖动被包成 400 之类的错与工具无关,不该让 tools 连坐。
+                        # 无论记不记,本条消息都降级纯文本重试,聊天永远不断。
+                        if "tool" in err_detail.lower():
+                            _ROUTE_NO_TOOLS[route_key] = time.monotonic()
+                            note = f"route in no-tools cooldown for {_ROUTE_NO_TOOLS_TTL / 60:.0f}min (self-heals)"
+                        else:
+                            note = "error detail not tool-related, route NOT marked"
                         print(
                             f"[api_loop:compat] gateway rejected tools (HTTP {resp.status_code}), retrying text-only; "
-                            f"route marked no-tools for process lifetime (restart to reset); detail={err_detail[:300]!r}",
+                            f"{note}; detail={err_detail[:300]!r}",
                             flush=True,
                         )
                         continue
