@@ -43,7 +43,7 @@
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/inter@5/600.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/400.min.css" rel="stylesheet">
 <link href="https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5/500.min.css" rel="stylesheet">
-<meta name="theme-color" content="#0d0920">
+<meta name="theme-color" content="#050D14">
 <!-- iOS launch mode is manifest-only; legacy Apple fullscreen meta breaks bottom viewport. -->
 
 <meta name="apple-mobile-web-app-title" content="Motra">
@@ -2968,8 +2968,10 @@ html[data-theme="sdv"] .msg-head .msg-avatar,html[data-theme="tide"] .msg-head .
 html[data-theme="sdv"] .msg-name,html[data-theme="tide"] .msg-name{font-family:"Cormorant","Noto Sans SC",serif;color:#e3c284;font-weight:500;letter-spacing:.05em;}
 html[data-theme="sdv"] .msg-time,html[data-theme="tide"] .msg-time{color:#6f66a0;}
 html[data-theme="sdv"] .day,html[data-theme="tide"] .day{padding:6px 14px;background:rgba(18,14,43,.48);border:1px solid rgba(227,194,132,.64);border-radius:999px;color:#d8c9e9;font-family:"Cormorant","Noto Sans SC",serif;font-size:12px;letter-spacing:.08em;box-shadow:0 8px 20px rgba(0,0,0,.22),inset 0 0 16px rgba(185,168,232,.08);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);}
-html[data-theme="sdv"] .row.ai .bubble,html[data-theme="tide"] .row.ai .bubble{background:linear-gradient(135deg,rgba(247,242,255,.76),rgba(214,198,244,.48) 55%,rgba(227,194,132,.18));color:#2b2342 !important;border:1px solid rgba(227,194,132,.82);border-radius:17px 17px 17px 5px;box-shadow:0 14px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.48),inset 0 0 22px rgba(185,168,232,.18);-webkit-backdrop-filter:blur(24px) saturate(125%);backdrop-filter:blur(24px) saturate(125%);}
-html[data-theme="sdv"] .row.human .bubble,html[data-theme="tide"] .row.human .bubble{background:linear-gradient(135deg,rgba(60,43,98,.78),rgba(27,20,57,.68) 58%,rgba(227,194,132,.18));color:#fffaff !important;border:1px solid rgba(227,194,132,.82);border-radius:17px 17px 5px 17px;box-shadow:0 14px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.16),inset 0 0 22px rgba(160,126,255,.18);-webkit-backdrop-filter:blur(24px) saturate(125%);backdrop-filter:blur(24px) saturate(125%);}
+/* 液态玻璃气泡:实色底(不渐变)——长文气泡底部不透壁纸,阅读优先;
+   玻璃质感由 backdrop blur + 描边 + 内侧高光承担,不依赖透明度渐变 */
+html[data-theme="sdv"] .row.ai .bubble,html[data-theme="tide"] .row.ai .bubble{background:rgba(247,242,255,.92);color:#2b2342 !important;border:1px solid rgba(227,194,132,.82);border-radius:17px 17px 17px 5px;box-shadow:0 14px 30px rgba(0,0,0,.24),inset 0 1px 0 rgba(255,255,255,.48),inset 0 0 22px rgba(185,168,232,.18);-webkit-backdrop-filter:blur(24px) saturate(125%);backdrop-filter:blur(24px) saturate(125%);}
+html[data-theme="sdv"] .row.human .bubble,html[data-theme="tide"] .row.human .bubble{background:rgba(43,32,77,.90);color:#fffaff !important;border:1px solid rgba(227,194,132,.82);border-radius:17px 17px 5px 17px;box-shadow:0 14px 30px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.16),inset 0 0 22px rgba(160,126,255,.18);-webkit-backdrop-filter:blur(24px) saturate(125%);backdrop-filter:blur(24px) saturate(125%);}
 html[data-theme="sdv"] .row.ai .bubble .txt,html[data-theme="tide"] .row.ai .bubble .txt{color:#2b2342 !important;text-shadow:0 1px 0 rgba(255,255,255,.3);}
 html[data-theme="sdv"] .row.human .bubble .txt,html[data-theme="tide"] .row.human .bubble .txt{color:#fffaff !important;text-shadow:0 1px 8px rgba(9,8,23,.8);}
 html[data-theme="sdv"] .row.ai .bubble::after,html[data-theme="tide"] .row.ai .bubble::after,html[data-theme="sdv"] .row.human .bubble::after,html[data-theme="tide"] .row.human .bubble::after{content:none !important;background:none !important;display:none !important;}
