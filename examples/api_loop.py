@@ -1115,6 +1115,8 @@ async def _drives_boot_handshake() -> None:
 PRESENCE_DEFAULTS: dict[str, Any] = {
     "scenario": "together_at_home",  # together_at_home | away | ai_away | together_out
     "room": "",                      # 当前房间名(仅 together_at_home 生效),空 = 未指定
+    "out_location": "",              # 外出地点名(仅 together_out 生效),如「京都·温泉旅馆」
+    "out_desc": "",                  # 外出场景描述(仅 together_out 生效)
 }
 SCENARIO_IDS: tuple[str, ...] = ("together_at_home", "away", "ai_away", "together_out")
 
@@ -1239,7 +1241,14 @@ def spatial_block() -> str:
         return "\n".join(p for p in (spatial, narrative, cat_block, period_block, fridge, guard) if p)
 
     if scenario == "together_out":
-        spatial = "【空间】现在你和用户一起出门在外。"
+        out_loc = str(p.get("out_location") or "").strip()
+        out_desc = str(p.get("out_desc") or "").strip()
+        if out_loc and out_desc:
+            spatial = f"【空间】现在你和用户一起出门在外,当前在「{out_loc}」。{out_desc}"
+        elif out_loc:
+            spatial = f"【空间】现在你和用户一起出门在外,当前在「{out_loc}」。"
+        else:
+            spatial = "【空间】现在你和用户一起出门在外。"
         narrative = "【叙事】你们正在外面:可以描写周围环境、天气与并肩同行的互动,但不描写家里才有的家具陈设。"
         fridge = (
             "【冰箱门】家里没人,冰箱门在家等你们:有话想留给对方、等一起回到家再读,"
@@ -1929,6 +1938,10 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
             cur["scenario"] = p["scenario"]
         if isinstance(p.get("room"), str):
             cur["room"] = str(p["room"]).strip()
+        if isinstance(p.get("out_location"), str):
+            cur["out_location"] = str(p["out_location"]).strip()[:50]
+        if isinstance(p.get("out_desc"), str):
+            cur["out_desc"] = str(p["out_desc"]).strip()[:500]
         cfg["presence"] = cur
     if isinstance(body.get("rooms"), dict):
         cleaned = {str(k).strip(): str(v).strip() for k, v in body["rooms"].items() if str(k).strip() and str(v).strip()}

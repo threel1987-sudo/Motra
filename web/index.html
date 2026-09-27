@@ -1765,6 +1765,13 @@
   .presence-slot-copy small{ font-size:11.5px; color: var(--text-soft); }
   .presence-rooms-title{ font-size:12.5px; color: var(--text-soft); margin:6px 2px 0; }
   .presence-rooms-chips{ display:flex; flex-wrap:wrap; gap:7px; margin-top:6px; }
+  .presence-out-input{
+    width:100%; margin-top:8px; padding:10px 12px;
+    background: var(--field-bg); border:1px solid var(--card-line); border-radius:12px;
+    color: var(--text); font: inherit; font-size:13.5px;
+  }
+  .presence-out-input:focus{ border-color: var(--accent); outline:none; }
+  .presence-out-desc{ margin-top:8px; font-size:13.5px; }
   .presence-chip{
     border:1px solid var(--card-line); background: var(--field-bg);
     color: var(--text-soft); border-radius:999px; padding:7px 13px;
@@ -3154,6 +3161,12 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
       <div class="presence-rooms-title">在家 · 选个房间（不选 = 不指定）</div>
       <div class="presence-rooms-chips" id="presenceRoomChips"></div>
     </div>
+    <div id="presenceOutWrap" hidden>
+      <div class="presence-rooms-title">一起出门 · 此刻你们在哪</div>
+      <input type="text" id="presenceOutLocation" class="presence-out-input" maxlength="50" placeholder="地点（如：京都·温泉旅馆）">
+      <textarea id="presenceOutDesc" class="config-textarea presence-out-desc" rows="3" maxlength="500" placeholder="描述周围的画面：建筑、光线、声音、气味…（只写空间，不写人格）"></textarea>
+      <div class="push-hint">出门描述只在这个场景下生效，切回家就还是家里的房间。写好了点上方「完成」。</div>
+    </div>
     <button class="presence-manage" id="presenceManageBtn" type="button">去设置里编辑房间描述 →</button>
   </div>
 </div>
@@ -3934,7 +3947,7 @@ const drivesRowToggle = $("#drivesRowToggle"), drivesEntryStatus = $("#drivesEnt
 const memoryConfigView = $("#memoryConfigView"), openMemoryConfigBtn = $("#openMemoryConfigBtn"), memoryUrlInput = $("#memoryUrlInput"), memorySaveBtn = $("#memorySaveBtn"), memoryConfigHint = $("#memoryConfigHint");
 const roomPanel = $("#roomPanel"), roomCloseBtn = $("#roomClose");
 const scenarioSeg = $("#scenarioSeg"), roomList = $("#roomList"), addRoomBtn = $("#addRoomBtn"), homeTemplateBtn = $("#homeTemplateBtn"), roomSaveBtn = $("#roomSaveBtn"), roomConfigHint = $("#roomConfigHint");
-const presenceCapsule = $("#presenceCapsule"), presenceOverlay = $("#presenceOverlay"), presenceScrim = $("#presenceScrim"), presenceCloseBtn = $("#presenceCloseBtn"), presenceScenarios = $("#presenceScenarios"), presenceRoomsWrap = $("#presenceRoomsWrap"), presenceRoomChips = $("#presenceRoomChips"), presenceManageBtn = $("#presenceManageBtn");
+const presenceCapsule = $("#presenceCapsule"), presenceOverlay = $("#presenceOverlay"), presenceScrim = $("#presenceScrim"), presenceCloseBtn = $("#presenceCloseBtn"), presenceScenarios = $("#presenceScenarios"), presenceRoomsWrap = $("#presenceRoomsWrap"), presenceRoomChips = $("#presenceRoomChips"), presenceManageBtn = $("#presenceManageBtn"), presenceOutWrap = $("#presenceOutWrap"), presenceOutLocation = $("#presenceOutLocation"), presenceOutDesc = $("#presenceOutDesc");
 const exportScopeSeg = $("#exportScopeSeg"), exportFormatSeg = $("#exportFormatSeg"), exportChatBtn = $("#exportChatBtn"), exportHint = $("#exportHint");
 const clearSessionList = $("#clearSessionList"), clearSessionHint = $("#clearSessionHint"), clearCacheBtn = $("#clearCacheBtn"), clearCacheHint = $("#clearCacheHint");
 let exportScope = "current";   // "current" | "all"
@@ -6422,6 +6435,7 @@ function presenceCapsuleText(p){
   if (!p) return SCENARIO_META.together_at_home.capsule;
   const meta = presenceMeta(p.scenario);
   if (p.scenario === "together_at_home" && p.room) return `${meta.capsule} · ${p.room}`;
+  if (p.scenario === "together_out" && p.out_location) return `${meta.capsule} · ${p.out_location}`;
   return meta.capsule;
 }
 function roomRowElement(name, desc){
@@ -6462,6 +6476,12 @@ function renderPresenceUi(p, rooms){
   if (scenarioSeg) scenarioSeg.querySelectorAll("button").forEach(b => b.classList.toggle("active", b.value === scenario));
   if (presenceScenarios) presenceScenarios.querySelectorAll(".presence-slot").forEach(b => b.classList.toggle("active", b.value === scenario));
   if (presenceRoomsWrap) presenceRoomsWrap.hidden = scenario !== "together_at_home";
+  if (presenceOutWrap) presenceOutWrap.hidden = scenario !== "together_out";
+  // 外出描述只在渲染时回填;输入过程中的值以 DOM 为准(防止防抖保存回读时被旧值覆盖)
+  if (presenceOutWrap && scenario === "together_out" && document.activeElement !== presenceOutLocation && document.activeElement !== presenceOutDesc){
+    if (presenceOutLocation) presenceOutLocation.value = p.out_location || "";
+    if (presenceOutDesc) presenceOutDesc.value = p.out_desc || "";
+  }
   if (presenceRoomChips){
     presenceRoomChips.textContent = "";
     if (scenario === "together_at_home"){
@@ -6546,6 +6566,24 @@ if (presenceScenarios){
     savePresence({ presence: { scenario: slot.value } }, null);
   });
 }
+/* 外出描述:输入停顿 600ms 自动保存(防抖),失焦立即存 */
+let _outSaveTimer = null;
+function saveOutDescNow(){
+  if (!savedLoopConfig) return;
+  savePresence({ presence: {
+    out_location: (presenceOutLocation?.value || "").trim(),
+    out_desc: (presenceOutDesc?.value || "").trim(),
+  } }, null);
+}
+function scheduleOutDescSave(){
+  clearTimeout(_outSaveTimer);
+  _outSaveTimer = setTimeout(saveOutDescNow, 600);
+}
+[presenceOutLocation, presenceOutDesc].forEach(el => {
+  if (!el) return;
+  el.addEventListener("input", scheduleOutDescSave);
+  el.addEventListener("blur", saveOutDescNow);
+});
 if (scenarioSeg){
   scenarioSeg.addEventListener("click", e => {
     const btn = e.target.closest("button");
