@@ -101,6 +101,13 @@ HISTORY_N = int(os.environ.get("HISTORY_N", "24"))
 # 只有用户显式配置时才发送该参数。
 _raw_max_tokens = os.environ.get("LLM_MAX_TOKENS", "").strip()
 MAX_TOKENS: int | None = int(_raw_max_tokens) if _raw_max_tokens else None
+# 思考链:默认关,开了才在请求里带 thinking 参数(Serein 会原样透传给 Anthropic 协议
+# 上游;思考增量走 thinking_delta 实时推到 PWA 折叠块)。换到不识别的渠道前记得关掉——
+# 部分 OpenAI 兼容网关收到未知字段会直接 400。
+_raw_thinking = os.environ.get("LLM_THINKING", "").strip().lower()
+THINKING = _raw_thinking in {"1", "true", "on", "enabled"}
+# 思考预算(token)。Anthropic 硬约束:budget >= 1024 且 max_tokens > budget。
+THINKING_BUDGET = max(1024, int(os.environ.get("LLM_THINKING_BUDGET", "2048")))
 TEMPERATURE = float(os.environ.get("LLM_TEMPERATURE", "0.7"))
 
 STREAM_OUTPUT = os.environ.get("LOOP_STREAM", "1").lower() not in {"0", "false", "no"}
@@ -1310,6 +1317,19 @@ def max_tokens() -> int | None:
     except Exception:
         return MAX_TOKENS
 
+def thinking() -> dict[str, Any] | None:
+    """None = 请求不带思考参数;开启时返回 {"type":"enabled","budget_tokens":N}。
+    运行时 config["thinking"] 可覆盖 env:false 关停,或 {"budget_tokens":N} 调预算。"""
+    v = load_config().get("thinking", THINKING)
+    budget = v.get("budget_tokens") if isinstance(v, dict) else (THINKING_BUDGET if v else None)
+    if budget is None:
+        return None
+    try:
+        budget = max(1024, int(budget or THINKING_BUDGET))
+    except (TypeError, ValueError):
+        budget = THINKING_BUDGET
+    return {"type": "enabled", "budget_tokens": budget}
+
 # ── 会话窗口(sessions)管理 ─────────────────────────────────────────────────
 def session_rows() -> list[dict[str, Any]]:
     rows = load_config().get("sessions")
@@ -1776,6 +1796,7 @@ def public_config() -> dict[str, Any]:
         "temperature": cfg.get("temperature", TEMPERATURE),
         "top_p": cfg.get("top_p", None),
         "max_tokens": cfg.get("max_tokens", MAX_TOKENS),
+        "thinking": cfg.get("thinking", THINKING),
         "injections": cfg.get("injections") or {"enabled": False, "entries": []},
         "drives_enabled": drives_enabled(),
         "presence": presence(),
@@ -1838,6 +1859,19 @@ def update_config(body: dict[str, Any]) -> dict[str, Any]:
                 cfg["max_tokens"] = max(100, min(131072, int(v)))
             except Exception:
                 pass
+    if "thinking" in body:
+        v = body.get("thinking")
+        if isinstance(v, dict):
+            # {"budget_tokens":N} = 开并设预算;{"enabled":false} 这类写法也认得
+            if v.get("enabled") is False:
+                cfg["thinking"] = False
+            else:
+                try:
+                    cfg["thinking"] = {"budget_tokens": max(1024, int(v.get("budget_tokens") or THINKING_BUDGET))}
+                except (TypeError, ValueError):
+                    pass
+        else:
+            cfg["thinking"] = bool(v)
     if "drives_enabled" in body:
         cfg["drives_enabled"] = bool(body.get("drives_enabled"))
     if "injections" in body:
@@ -2459,6 +2493,16 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
     mt = max_tokens()
     if mt is not None:
         body["max_tokens"] = mt
+    tk = thinking()
+    if tk is not None:
+        body["thinking"] = tk
+        # Anthropic 开思考时不认 temperature/top_p(带了直接 400),让给上游默认值。
+        body.pop("temperature", None)
+        body.pop("top_p", None)
+        # 硬约束 max_tokens > budget_tokens:「自动」(不传)经 Serein 转换层默认只填
+        # 1024,必炸;设的值不够也一样 → 不够就抬到 预算+8192。
+        if mt is None or mt <= tk["budget_tokens"]:
+            body["max_tokens"] = tk["budget_tokens"] + 8192
     req_headers = {"Authorization": f"Bearer {route['key']}", "Content-Type": "application/json"}
     for hk, hv in (route.get("headers") or {}).items():
         if str(hk) and str(hv):
