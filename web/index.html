@@ -3436,6 +3436,15 @@ html[data-theme="sdv"] .call-overlay,html[data-theme="tide"] .call-overlay,html[
             <input id="maxTokensAutoInput" type="checkbox" onchange="syncMaxTokensAuto(this)">
             <span>自动：不填数值，跟随当前模型默认上限（长文本 / MCP 调用推荐）</span>
           </label>
+          <div class="config-field-label">思考链 <i class="info-i" title="开启后模型先想再答，思考过程实时显示在回复上方的折叠块里。仅 Anthropic 协议通道（如经 Serein 转 Anthropic）有效；换到不识别的渠道前请关掉，否则部分网关会报错。开启期间 Temperature / Top P 不生效，思考 token 计入最大 Token 数。">i</i></div>
+          <label class="param-auto-row">
+            <input id="thinkingEnabledInput" type="checkbox" onchange="syncThinkingEnabled(this)">
+            <span>开启思考链（边想边说）</span>
+          </label>
+          <div class="param-slider-row">
+            <input id="thinkingBudgetInput" class="param-slider" type="range" min="1024" max="16384" step="1024" value="2048" aria-label="思考预算" oninput="syncParamVal(this)" onchange="syncParamVal(this)">
+            <span class="param-val" id="thinkingBudgetInputVal">2048</span>
+          </div>
         </div>
         <div class="config-actions"><button class="config-action primary" id="modelParamsSaveBtn" type="button">保存参数</button></div>
         <div class="push-hint" id="modelParamsConfigHint">调完点「保存参数」，对之后的新消息生效</div>
@@ -3935,6 +3944,7 @@ const openApiConfigBtn = $("#openApiConfigBtn"), openMcpConfigBtn = $("#openMcpC
 const personaConfigView = $("#personaConfigView"), modelParamsConfigView = $("#modelParamsConfigView");
 const personaInput = $("#personaInput"), aiNameInput = $("#aiNameInput"), personaSaveBtn = $("#personaSaveBtn"), personaConfigHint = $("#personaConfigHint");
 const temperatureInput = $("#temperatureInput"), topPInput = $("#topPInput"), historyNInput = $("#historyNInput"), maxTokensInput = $("#maxTokensInput"), maxTokensAutoCheck = $("#maxTokensAutoInput"), modelParamsSaveBtn = $("#modelParamsSaveBtn"), modelParamsConfigHint = $("#modelParamsConfigHint");
+const thinkingEnabledInput = $("#thinkingEnabledInput"), thinkingBudgetInput = $("#thinkingBudgetInput");
 const injectConfigView = $("#injectConfigView"), openInjectConfigBtn = $("#openInjectConfigBtn"), injectEnabledInput = $("#injectEnabledInput"), injectEntriesList = $("#injectEntriesList"), injectAddBtn = $("#injectAddBtn"), injectConfigHint = $("#injectConfigHint"), injectEntryStatus = $("#injectEntryStatus");
 const proactiveConfigView = $("#proactiveConfigView"), openProactiveConfigBtn = $("#openProactiveConfigBtn"), proactiveEnabledInput = $("#proactiveEnabledInput"), proactiveIdleInput = $("#proactiveIdleInput"), proactiveCooldownInput = $("#proactiveCooldownInput"), proactiveMaxDayInput = $("#proactiveMaxDayInput"), proactiveQuietEnabledInput = $("#proactiveQuietEnabledInput"), proactiveQuietStartInput = $("#proactiveQuietStartInput"), proactiveQuietEndInput = $("#proactiveQuietEndInput"), proactiveTzSelect = $("#proactiveTzSelect"), proactiveSaveBtn = $("#proactiveSaveBtn"), proactiveConfigHint = $("#proactiveConfigHint"), proactiveEntryStatus = $("#proactiveEntryStatus");
 const dataConfigView = $("#dataConfigView"), dataGroupView = $("#dataGroupView");
@@ -5454,6 +5464,19 @@ function applyMaxTokensConfig(value){
     setParamSlider(maxTokensInput, value, "2000");
   }
 }
+function syncThinkingEnabled(chk){
+  if (thinkingBudgetInput) thinkingBudgetInput.disabled = !chk.checked;
+}
+function applyThinkingConfig(value){
+  // 兼容三种形态:false/undefined=关;true=开(默认预算);{budget_tokens:N}=开并指定预算
+  const on = !!(value && (typeof value !== "object" || value.enabled !== false));
+  if (thinkingEnabledInput) thinkingEnabledInput.checked = on;
+  if (thinkingBudgetInput){
+    thinkingBudgetInput.disabled = !on;
+    const budget = (value && typeof value === "object") ? value.budget_tokens : null;
+    setParamSlider(thinkingBudgetInput, budget, "2048");
+  }
+}
 /* ── 指令注入:卡片列表 + 内联表单(与「AI API」页同一套交互),所有改动即时保存 ── */
 let injectEntries = [];          // 当前条目 [{title,content,enabled}],改动即整体提交
 let editingInjectIndex = null;   // 表单正在编辑的条目索引,null=添加模式
@@ -6082,6 +6105,7 @@ async function loadLoopConfig(){
     setParamSlider(topPInput, savedLoopConfig.top_p, "1.0");
     setParamSlider(historyNInput, savedLoopConfig.history_n, "24");
     applyMaxTokensConfig(savedLoopConfig.max_tokens);
+    applyThinkingConfig(savedLoopConfig.thinking);
 
     resetMcpForm();
     renderApiList();
@@ -6175,6 +6199,7 @@ async function loadModelParamsConfig(){
     setParamSlider($("#topPInput"), cfg.top_p, "1.0");
     setParamSlider($("#historyNInput"), cfg.history_n, "24");
     applyMaxTokensConfig(cfg.max_tokens);
+    applyThinkingConfig(cfg.thinking);
   }catch{}}
 $("#openPersonaConfigBtn")?.addEventListener("click", () => { setConfigView("persona"); loadPersonaConfig(); });
 $("#openModelParamsBtn")?.addEventListener("click", () => { setConfigView("model-params"); loadModelParamsConfig(); });
@@ -6647,6 +6672,11 @@ $("#modelParamsSaveBtn")?.addEventListener("click", async () => {
   if (!isNaN(histVal)) payload.history_n = histVal;
   if (maxTokensAutoCheck?.checked) payload.max_tokens = null;
   else if (!isNaN(maxtVal)) payload.max_tokens = maxtVal;
+  const thinkingOn = !!thinkingEnabledInput?.checked;
+  const thinkingBudgetVal = parseInt(thinkingBudgetInput?.value);
+  payload.thinking = thinkingOn
+    ? { budget_tokens: (!isNaN(thinkingBudgetVal) ? thinkingBudgetVal : 2048) }
+    : false;
   await saveLoopConfig(payload, hint);
 });
 document.querySelectorAll("[data-config-back]").forEach(button => button.addEventListener("click", () => setConfigView("hub")));
