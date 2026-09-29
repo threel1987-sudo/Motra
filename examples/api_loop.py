@@ -2155,6 +2155,9 @@ def normalize_stream_event(ev: dict[str, Any]) -> dict[str, Any]:
     return {
         "content": content,
         "thinking": thinking,
+        # 结构化思考明细(含签名)原样透传:Anthropic 系上游开思考链后,要求「含工具调用的
+        # assistant 回合必须带着产生它的思考块」回传,缺了会在工具续轮被 400。调用方负责攒。
+        "reasoning_details": delta.get("reasoning_details") if isinstance(delta.get("reasoning_details"), list) else None,
         "tool_calls": tool_calls,
         "role": delta.get("role") or "",
         "usage": usage,
@@ -2521,6 +2524,10 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
     text_parts: list[str] = []
     thinking_parts: list[str] = []
     tool_calls_buf: list[dict[str, Any]] = []
+    # 带签名的思考明细缓冲:按 index 攒 text/signature,收尾时回填进 raw_msg。
+    # 不回填的话,工具续轮的 assistant 回合缺思考块,上游 400 → 触发摘工具降级,
+    # 模型手里没工具、系统提示词里又写着有,只能「演」自己调用过(已实测的坑)。
+    reasoning_buf: dict[int, dict[str, Any]] = {}
     usage: dict[str, Any] = {}
     raw_msg: dict[str, Any] = {}
 
@@ -2654,6 +2661,7 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                         text_parts.clear()
                         thinking_parts.clear()
                         tool_calls_buf.clear()
+                        reasoning_buf.clear()
                         usage = {}
                         raw_msg = {}
                         saw_finish = False
@@ -2687,6 +2695,24 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
                                 await on_thinking(n["thinking"])
                             except Exception:
                                 pass
+                    for d in (n.get("reasoning_details") or []):
+                        if not isinstance(d, dict):
+                            continue
+                        try:
+                            ridx = int(d.get("index") or 0)
+                        except (TypeError, ValueError):
+                            ridx = 0
+                        entry = reasoning_buf.setdefault(ridx, {
+                            "type": str(d.get("type") or "reasoning.text"),
+                            "format": str(d.get("format") or "anthropic-claude-v1"),
+                            "index": ridx, "text": "",
+                        })
+                        if d.get("text"):
+                            entry["text"] += str(d["text"])
+                        if d.get("signature"):
+                            entry["signature"] = d["signature"]
+                        if d.get("data"):
+                            entry["data"] = d["data"]
                     if n["tool_calls"]:
                         if debug_stream:
                             print(f"[api_loop:debug] TOOL_DELTA |{n['tool_calls']}")
@@ -2715,6 +2741,8 @@ async def chat_once(route: dict[str, Any], messages: list[dict[str, Any]], tools
     if "role" not in raw_msg:
         raw_msg["role"] = "assistant"
     raw_msg["content"] = final_text
+    if reasoning_buf:
+        raw_msg["reasoning_details"] = [reasoning_buf[i] for i in sorted(reasoning_buf)]
     if raw_tool_calls:
         raw_msg["tool_calls"] = raw_tool_calls
     print(
@@ -3979,7 +4007,7 @@ async def loop_cancel(request: Request):
 if __name__ == "__main__":
     # 启动版本戳:排障时第一眼就能确认 pod 跑的是哪版代码(部署有没有生效)。
     # 改影响计费/流式行为的功能时顺手更新这个串。
-    print("[api_loop:boot] build=2026-09-10-transient-retry+tool-partials+cat-engine", flush=True)
+    print("[api_loop:boot] build=2026-09-28-thinking-toggle+reasoning-passthrough", flush=True)
     # access_log=False:ingest/配置轮询每次对话都会产生一堆 HTTP 行,把关键日志
     # (→POST / ✓done / tool_loop / restart)全淹了;relay 侧早已 --no-access-log。
     # 需要排障时再临时开,平时保持安静。
