@@ -1051,6 +1051,24 @@ async def app_history(request: Request, since: int = 0, limit: int = 200, sessio
     return {"messages": [app_payload(m) for m in rows]}
 
 
+@app.get("/app/search")
+async def app_search(request: Request, q: str = "", limit: int = 50):
+    """关键词搜原文:子串匹配(SQLite LIKE 对 ASCII 大小写不敏感,中文本来就是子串命中),
+    最新在前。通话事件(kind=call)没有正文可搜,排除。"""
+    check_auth(request)
+    q = q.strip()
+    if not q:
+        return {"results": []}
+    esc = q.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+    with db() as conn:
+        rows = conn.execute(
+            "SELECT * FROM messages WHERE text LIKE ? ESCAPE '\\' AND kind != 'call' "
+            "ORDER BY id DESC LIMIT ?",
+            (f"%{esc}%", min(limit, 200)),
+        ).fetchall()
+    return {"results": [app_payload(m) for m in rows_to_messages(rows)]}
+
+
 # ---- fridge notes (sticky notes on the fridge door) -------------------------
 
 @app.get("/app/fridge")
